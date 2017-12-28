@@ -1,222 +1,210 @@
-use std::io::{self, Read};
-use std::str::FromStr;
-
-#[derive(Copy, Clone, Debug)]
-enum Register {
-    A,
-    B,
-    C,
-    D,
-}
-
-#[derive(Copy, Clone, Debug)]
-enum Value {
-    Immediate(i64),
-    Register(Register)
-}
-
-#[derive(Copy, Clone, Debug)]
-enum Instruction {
-    Copy(Value, Register),
-    Inc(Register),
-    Dec(Register),
-    JNZ(Value, Value),
-    TGL(Value),
-    INVALID,
-}
-
-#[derive(Copy, Clone, Debug)]
-struct CPU {
-    ip: usize,
-    a: i64,
-    b: i64,
-    c: i64,
-    d: i64,
-}
-
-impl CPU {
-    fn new() -> Self {
-        CPU {ip: 0, a: 0, b: 0, c: 0, d: 0}
-    }
-
-    fn get_value(&self, value: &Value) -> i64 {
-        match *value {
-            Value::Immediate(i) => i,
-            Value::Register(r) => {
-                match r {
-                    Register::A => self.a,
-                    Register::B => self.b,
-                    Register::C => self.c,
-                    Register::D => self.d,
-                }
-            }
-        }
-    }
-
-    fn update_register(self, register: Register, value: i64) -> Self {
-        match register {
-            Register::A => CPU { a: value, ..self },
-            Register::B => CPU { b: value, ..self },
-            Register::C => CPU { c: value, ..self },
-            Register::D => CPU { d: value, ..self },
-        }
-    }
-
-    fn next_ip(self) -> Self {
-        CPU { ip: self.ip + 1, .. self}
-    }
-
-    fn execute(self, program: &Program) -> Self {
-        let mut program = program.clone();
-        if self.ip < program.len() {
-            use Instruction::*;
-            match program[self.ip] {
-                INVALID => {
-                    self.next_ip()
-                }
-                Copy(ref v, r) => {
-                    self.update_register(r, self.get_value(v)).next_ip()
-                }
-                Inc(r) => {
-                    self.update_register(r,
-                                         self.get_value(&Value::Register(r)) + 1)
-                        .next_ip()
-                }
-                Dec(r) => {
-                    self.update_register(r,
-                                         self.get_value(&Value::Register(r)) - 1)
-                        .next_ip()
-                }
-                JNZ(ref v1, v) => {
-                    if self.get_value(v1) != 0 {
-                        let shift = self.get_value(&v);
-                        let new_ip = ( (self.ip as i64) + shift ) as usize;
-                        CPU { ip: new_ip, ..self }
-                    } else {
-                        self.next_ip()
-                    }
-                }
-                TGL(ref v) => {
-
-                    // TODO
-                    self.next_ip()
-                }
-            }
-        } else {
-            self
-        }
-    }
-}
-
-type Program = Vec<Instruction>;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
-struct Computer<'p> {
-    cpu: CPU,
-    program: &'p Program,
+enum Value {
+    Register(String),
+    Number(i32),
 }
 
-impl<'p> Computer<'p> {
-    fn new(program: &'p Program) -> Self {
-        Computer { cpu: CPU::new(), program: program }
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum Op {
+    Cpy,
+    Jnz,
+    Inc,
+    Dec,
+    Tgl,
+}
+
+#[derive(Clone, Debug)]
+enum Instruction {
+    Unary(Op, Value),
+    Binary(Op, Value, Value),
+}
+
+struct Computer {
+    instructions: Vec<Instruction>,
+    registers: HashMap<String, i32>,
+}
+
+impl Computer {
+    fn new(instructions: Vec<Instruction>) -> Self {
+        Computer {
+            instructions,
+            registers: HashMap::new(),
+        }
     }
 
-    fn halted(&self) -> bool {
-        self.cpu.ip >= self.program.len()
+    fn get(&self, register: &str) -> i32 {
+        *self.registers.get(register).or(Some(&0)).unwrap()
+    }
+
+    fn set(&mut self, register: String, value: i32) {
+        self.registers.insert(register, value);
+    }
+
+    fn get_value(&self, v: &Value) -> i32 {
+        match *v {
+            Value::Number(i) => i,
+            Value::Register(ref s) => {
+                match self.registers.get(s) {
+                    Some(i) => *i,
+                    _ => 0
+                }
+            }
+        }
     }
 
     fn run(&mut self) {
+        let mut ip = 0;
+
         loop {
-            if self.halted() {
+            if ip >= self.instructions.len() {
                 break;
             }
-            self.cpu = self.cpu.execute(&self.program);
+
+            let mut ti = None;
+
+            use Instruction::*;
+            match &self.instructions[ip] {
+                &Binary(Op::Cpy, ref v, ref t) => {
+                    match t {
+                        &Value::Register(ref s) => {
+                            let v = self.get_value(&v);
+                            self.registers.insert(s.clone(), v);
+                        }
+                        _ => {}
+                    }
+                }
+                &Unary(Op::Inc, ref v) => {
+                    match v {
+                        &Value::Register(ref s) => {
+                            *self.registers.entry(s.clone()).or_insert(0) += 1;
+                        }
+                        _ => {}
+                    }
+                }
+                &Unary(Op::Dec, ref v) => {
+                    match v {
+                        &Value::Register(ref s) => {
+                            *self.registers.entry(s.to_owned()).or_insert(0) -= 1;
+                        }
+                        _ => {}
+                    }
+                }
+                &Binary(Op::Jnz, ref v, ref o) => {
+                    let offset = self.get_value(o);
+                    let v = self.get_value(v);
+                    if v != 0 {
+                        let mut iip = ip as i32;
+                        if iip + offset < 0 {
+                            break;
+                        }
+                        iip += offset;
+                        assert!(iip > 0);
+                        ip = iip as usize;
+                        continue;
+                    }
+                }
+                &Unary(Op::Tgl, ref v) => {
+                    ti = Some(ip as i32 + self.get_value(v));
+                }
+                _ => unreachable!(),
+            }
+            if let Some(ti) = ti {
+                if ti >= 0 && ti < self.instructions.len() as i32 {
+                    let ti = ti as usize;
+                    match &mut self.instructions[ti] {
+                        &mut Binary(ref mut op, _, _) => {
+                            if *op == Op::Cpy {
+                                *op = Op::Jnz;
+                            } else {
+                                *op = Op::Cpy;
+                            }
+                        }
+                        &mut Unary(ref mut op, _) => {
+                            if *op == Op::Inc {
+                                *op = Op::Dec;
+                            } else {
+                                *op = Op::Inc;
+                            }
+                        }
+                    };
+                }
+            }
+            ip += 1;
         }
     }
 }
 
-fn parse_value(value: &str) -> Value {
-    match i64::from_str(value) {
-        Ok(i) => Value::Immediate(i),
-        Err(_) => Value::Register(parse_register(value))
-    }
-}
-
-fn parse_register(register: &str) -> Register {
-    if "a" == register {
-        Register::A
-    } else if "b" == register {
-        Register::B
-    } else if "c" == register {
-        Register::C
-    } else if "d" == register {
-        Register::D
-    } else {
-        println!("Unkown register [{}]", register);
-        unreachable!()
-    }
-}
-
-fn parse_instruction(instr: &str) -> Instruction {
-    let mut iter = instr.split_whitespace();
-    let code = iter.next().unwrap();
-    if code == "cpy" {
-        Instruction::Copy(parse_value(iter.next().unwrap()),
-                          parse_register(iter.next().unwrap()))
-    } else if code == "inc" {
-        Instruction::Inc(parse_register(iter.next().unwrap()))
-    } else if code == "dec" {
-        Instruction::Dec(parse_register(iter.next().unwrap()))
-    } else if code == "jnz" {
-        Instruction::JNZ(parse_value(iter.next().unwrap()),
-                        parse_value(iter.next().unwrap()))
-    } else if code == "tgl" {
-        Instruction::TGL(parse_value(iter.next().unwrap()))
-    } else {
-        println!("Unknown OP code [{}]", code);
-        unreachable!()
-    }
-}
-
-
 fn main() {
-    let mut buffer = String::new();
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
-    handle.read_to_string(&mut buffer).unwrap();
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+    use std::env::args;
 
-    let mut program = Vec::new();
+    assert!(args().len() > 1);
+    let path = args().nth(1).unwrap();
+    let input = File::open(&path).unwrap();
+    let buf = BufReader::new(input);
 
-    for line in buffer.lines() {
-        program.push(parse_instruction(line.trim()));
+    fn parse_arg(s: &str) -> Value {
+        match s.parse::<i32>() {
+            Ok(i) => Value::Number(i),
+            Err(_) => Value::Register(s.to_owned())
+        }
     }
 
-    let mut computer = Computer::new(&program);
+    let mut instructions = Vec::new();
 
-    computer.run();
+    for line in buf.lines() {
+        let line = line.unwrap();
+        let v: Vec<&str> = line.split_whitespace().collect();
+        use Instruction::*;
+        let i = match v[0] {
+            "cpy" => {
+                Binary(Op::Cpy, parse_arg(v[1]), parse_arg(v[2]))
+            }
+            "jnz" => {
+                Binary(Op::Jnz, parse_arg(v[1]), parse_arg(v[2]))
+            }
+            "inc" => {
+                Unary(Op::Inc, parse_arg(v[1]))
+            }
+            "dec" => {
+                Unary(Op::Dec, parse_arg(v[1]))
+            }
+            "tgl" => {
+                Unary(Op::Tgl, parse_arg(v[1]))
+            }
+            _ => unreachable!(),
+        };
 
-    println!("Computer CPU: {:?}", computer.cpu);
+        instructions.push(i);
+    }
 
-    let mut computer = Computer::new(&program);
+    let mut cpu = Computer::new(instructions.clone());
+    cpu.set("a".to_owned(), 7);
+    cpu.run();
+    println!("For input = 7; a == {}", cpu.get("a"));
 
-    computer.cpu.c = 1;
-    computer.run();
-
-    println!("Computer CPU with initial register c == 1: {:?}", computer.cpu);
+    let mut cpu = Computer::new(instructions.clone());
+    cpu.set("a".to_owned(), 12);
+    cpu.run();
+    println!("For input = 12, a == {}", cpu.get("a"));
 }
 
 #[test]
 fn test() {
-    let mut program = Vec::new();
-    program.push(Instruction::Copy(Value::Immediate(41), Register::A));
-    program.push(Instruction::Inc(Register::A));
-    program.push(Instruction::Inc(Register::A));
-    program.push(Instruction::Dec(Register::A));
-    program.push(Instruction::JNZ(Register::A, Value::Immediate(2)));
-    program.push(Instruction::Dec(Register::A));
+    let mut instructions = Vec::new();
+    instructions.push(Instruction::Binary(Op::Cpy, Value::Number(2), Value::Register("a".to_owned())));
+    instructions.push(Instruction::Unary(Op::Tgl, Value::Register("a".to_owned())));
+    instructions.push(Instruction::Unary(Op::Tgl, Value::Register("a".to_owned())));
+    instructions.push(Instruction::Unary(Op::Tgl, Value::Register("a".to_owned())));
+    instructions.push(Instruction::Binary(Op::Cpy, Value::Number(1), Value::Register("a".to_owned())));
+    instructions.push(Instruction::Unary(Op::Dec, Value::Register("a".to_owned())));
+    instructions.push(Instruction::Unary(Op::Dec, Value::Register("a".to_owned())));
 
-    let mut computer = Computer::new(program);
-    computer.run();
+    let mut cpu = Computer::new(instructions);
 
-    assert_eq!(computer.cpu.a, 42);
+    cpu.run();
+    assert_eq!(cpu.get("a".to_owned()), 3);
 }
