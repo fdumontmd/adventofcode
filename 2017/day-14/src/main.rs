@@ -60,8 +60,6 @@ fn make_connected(s: &str) -> (HashMap<(usize, usize), usize>, UnionFind){
         }
     }
 
-    println!("uf: {}, hm: {}", uf.len(), hm.len());
-
     (hm, uf)
 }
 
