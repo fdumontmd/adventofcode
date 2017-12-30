@@ -1,8 +1,8 @@
 [package]
-name = "day-10"
+name = "day-14"
 version = "0.1.0"
 authors = ["Frederic Dumont <fdumontmd@gmail.com>"]
 
 [dependencies]
 aoc-utils = { path = "../../aoc-utils" }
-knot-hash = { path = "knot-hash" }
+knot-hash = { path = "../day-10/knot-hash" }
