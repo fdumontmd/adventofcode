@@ -100,6 +100,8 @@ fn main() {
         steps.push(input.clone());
     };
 
+    // given that we loop after steps.len() dances
+    // we are at state N % steps.len() after N dances
     let final_step = 1_000_0000_000 % steps.len();
 
     println!("Steps length: {}", steps.len());
