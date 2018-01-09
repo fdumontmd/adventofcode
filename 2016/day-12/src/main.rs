@@ -199,10 +199,10 @@ fn test() {
     program.push(Instruction::Inc(Register::A));
     program.push(Instruction::Inc(Register::A));
     program.push(Instruction::Dec(Register::A));
-    program.push(Instruction::JNZ(Register::A, Value::Immediate(2)));
+    program.push(Instruction::JNZ(Value::Register(Register::A), Value::Immediate(2)));
     program.push(Instruction::Dec(Register::A));
 
-    let mut computer = Computer::new(program);
+    let mut computer = Computer::new(&program);
     computer.run();
 
     assert_eq!(computer.cpu.a, 42);
