@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Frederic Dumont <fdumontmd@gmail.com>"]
 
 [dependencies]
+aoc-utils = { path = "../../aoc-utils" }
