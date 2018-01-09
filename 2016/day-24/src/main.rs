@@ -167,8 +167,7 @@ fn shortest_distances(maze: &Maze) -> HashMap<(u8, u8), usize> {
 
 fn next_permutation(v: &mut Vec<u8>) -> bool {
     let mut k = None;
-    for sk in 1..v.len() {
-        let sk = v.len() - 1 - sk;
+    for sk in (0..v.len() - 1).rev() {
         if v[sk] < v[sk+1] {
             k = Some(sk);
             break;
@@ -176,8 +175,7 @@ fn next_permutation(v: &mut Vec<u8>) -> bool {
     }
 
     if let Some(k) = k {
-        for l in 0..(v.len() - k - 1) {
-            let l = v.len() - l - 1;
+        for l in (k+1..v.len()).rev() {
             if v[k] < v[l] {
                 v.swap(k, l);
                 v[k+1..].reverse();
@@ -211,10 +209,6 @@ fn main() {
             dist += *distances.get(&(pair[0], pair[1])).unwrap();
         }
 
-        if min_dist > dist {
-            println!("0 then {:?}", v);
-        }
-
         min_dist = min_dist.min(dist);
 
         if !next_permutation(&mut v) {
@@ -236,10 +230,6 @@ fn main() {
         }
 
         dist += *distances.get(&(v[v.len() -1], b'0')).unwrap();
-
-        if min_dist > dist {
-            println!("0 then {:?}", v);
-        }
 
         min_dist = min_dist.min(dist);
 
