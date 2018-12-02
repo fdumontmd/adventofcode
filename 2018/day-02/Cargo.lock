@@ -1,0 +1,11 @@
+[[package]]
+name = "aoc-utils"
+version = "0.1.0"
+
+[[package]]
+name = "day-02"
+version = "0.1.0"
+dependencies = [
+ "aoc-utils 0.1.0",
+]
+
