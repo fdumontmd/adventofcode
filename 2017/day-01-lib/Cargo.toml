@@ -1,0 +1,13 @@
+[package]
+name = "day-01-lib"
+version = "0.1.0"
+authors = ["Frederic Dumont <fdumontmd@gmail.com>"]
+
+[dependencies]
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "benchmark"
+harness = false
