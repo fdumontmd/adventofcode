@@ -80,7 +80,6 @@ impl PartialOrd for Task {
 fn part_two(input: &Vec<Before>, workers: usize, base_time: usize) -> usize {
     use std::collections::BTreeSet;
     use std::collections::BinaryHeap;
-    let mut result: Vec<u8> = Vec::new();
     let max_vertex = count_vertex(input);
 
     let mut candidates: BTreeSet<u8> = (0..max_vertex).collect();
@@ -120,7 +119,6 @@ fn part_two(input: &Vec<Before>, workers: usize, base_time: usize) -> usize {
             current_time = t + 1;
             available_workers += 1;
             remaining = remaining.iter().cloned().filter(|Before(f, _)| *f != c).collect();
-            result.push(c);
         }
     }
 
