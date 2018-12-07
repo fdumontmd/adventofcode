@@ -40,7 +40,6 @@ fn part_one(input: &Vec<Before>) -> String {
 
         for c in &candidates {
             if remaining.iter().filter(|Before(_, s)| c == s).count() == 0 {
-                println!("{} is available", (c + b'A') as char);
                 result.push(*c);
                 break;
             }
@@ -78,7 +77,7 @@ impl PartialOrd for Task {
 // once all workers are busy, or if there are no more candidates, pull the
 // next item from the heap, add it to result, and clear remaining, then
 // check for next task (until either no candidate or no worker)
-fn part_two(input: &Vec<Before>, workers: usize, base_time: usize) -> String {
+fn part_two(input: &Vec<Before>, workers: usize, base_time: usize) -> usize {
     use std::collections::BTreeSet;
     use std::collections::BinaryHeap;
     let mut result: Vec<u8> = Vec::new();
@@ -90,6 +89,7 @@ fn part_two(input: &Vec<Before>, workers: usize, base_time: usize) -> String {
     let mut available_workers = workers;
 
     let mut remaining: Vec<Before> = input.to_vec();
+    let mut current_time = 0;
 
     loop {
         if candidates.is_empty() {
@@ -100,13 +100,13 @@ fn part_two(input: &Vec<Before>, workers: usize, base_time: usize) -> String {
 
         for c in &candidates {
             if remaining.iter().filter(|Before(_, s)| c == s).count() == 0 {
-                println!("{} is starting", (c + b'A') as char);
                 available_workers -= 1;
 
-                let time = base_time + *c as usize;
+                let time = current_time + base_time + *c as usize;
 
                 selected.push(*c);
-                tasks.push(Task(time, *c));
+                let task = Task(time, *c);
+                tasks.push(task);
 
                 if available_workers == 0 {
                     break;
@@ -116,20 +116,21 @@ fn part_two(input: &Vec<Before>, workers: usize, base_time: usize) -> String {
 
         selected.into_iter().for_each(|c| { candidates.remove(&c); });
 
-        if let Some(Task(_, c)) = tasks.pop() {
-            println!("{} is finished", (c + b'A') as char);
+        if let Some(Task(t, c)) = tasks.pop() {
+            current_time = t + 1;
             available_workers += 1;
             remaining = remaining.iter().cloned().filter(|Before(f, _)| *f != c).collect();
             result.push(c);
         }
     }
 
-    String::from_utf8(result.into_iter().map(|v| v + b'A').collect::<Vec<u8>>()).unwrap()
+    current_time
 }
 
 fn main() -> Result<()> {
     let input = input()?;
     println!("first part: {}", part_one(&input));
+    println!("second part: {}", part_two(&input, 5, 60));
     Ok(())
 }
 
@@ -162,6 +163,6 @@ Step F must be finished before step E can begin.";
 
     #[test]
     fn test_part_two() {
-        assert_eq!(part_two(&input(), 2, 0), "CABFDE");
+        assert_eq!(part_two(&input(), 2, 0), 15);
     }
 }
