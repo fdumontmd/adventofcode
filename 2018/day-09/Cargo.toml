@@ -1,0 +1,11 @@
+[package]
+name = "day-09"
+version = "0.1.0"
+authors = ["Frederic Dumont <fdumontmd@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+aoc-utils = { path = "../../aoc-utils" }
+regex = "1.1.0"
+lazy_static = "1.2.0"
+indicatif = "0.10.3"
