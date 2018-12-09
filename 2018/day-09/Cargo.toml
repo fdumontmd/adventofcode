@@ -8,4 +8,3 @@ edition = "2018"
 aoc-utils = { path = "../../aoc-utils" }
 regex = "1.1.0"
 lazy_static = "1.2.0"
-indicatif = "0.10.3"
