@@ -14,11 +14,4 @@ pub fn get_input() -> BufReader<File> {
 
 
 pub mod union_find;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub mod ring;

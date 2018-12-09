@@ -1,6 +1,6 @@
 use aoc_utils::get_input;
+use aoc_utils::ring::Ring;
 
-use indicatif::ProgressBar;
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -51,47 +51,20 @@ impl FromStr for Problem {
 }
 
 fn score(p: &Problem) -> usize {
-    //let progress = ProgressBar::new(p.last_marble as u64);
     let mut scores = vec![0; p.players];
-    let mut circle = vec![0];
+    let mut circle = Ring::new();
+    circle.insert(0);
     let mut current_player = p.players - 1;
-    let mut current_marble = 0;
 
     for marble in 1..=p.last_marble {
-        if marble % 10000 == 0 {
-            print!("#");
-            use std::io::Write;
-            std::io::stdout().flush();
-        }
-        //progress.tick();
         current_player = (current_player + 1) % p.players;
         if marble % 23 == 0 {
             scores[current_player] += marble;
-            current_marble = (current_marble + 7 * circle.len()) - 7;
-            current_marble %= circle.len();
-            // we have a hole; try to use it
-            scores[current_player] += circle[current_marble];
-            // put next marble
-            circle[current_marble] = marble + 1;
-            // need to swap right twice
-            let next = (current_marble + 1) % circle.len();
-            circle.swap(current_marble, next);
-            let next_next = (next + 1) % circle.len();
-            circle.swap(next, next_next);
-            current_marble = next_next;
-            //progress.tick();
+            circle.move_left(7);
+            scores[current_player] += circle.remove().unwrap();
         } else {
-            if marble > 1 && (marble - 1) % 23 == 0 {
-                // already done
-                continue;
-            }
-            let next = (current_marble + 1) % circle.len();
-            if next == circle.len() - 1 {
-                circle.push(marble);
-            } else {
-                circle.insert(next + 1, marble);
-            }
-            current_marble = next + 1;
+            circle.move_right(2);
+            circle.insert(marble);
         }
     }
 
