@@ -111,10 +111,7 @@ impl Constellation {
         let x_span = self.x_span();
         let y_span = self.y_span();
 
-        let mut lines = Vec::new();
-        for _ in 0..y_span {
-            lines.push(vec!(b' '; x_span));
-        }
+        let mut lines = vec![vec![b' '; x_span]; y_span];
 
         for star in &self.0 {
             let x = (star.position.0 - x_min) as usize;
