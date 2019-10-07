@@ -78,10 +78,10 @@ fn main() {
 
     for line in buffer.lines() {
         if let Some(ref caps) = re.captures(&line) {
-            let attendee = caps.at(1).unwrap();
-            let neighbour = caps.at(4).unwrap();
-            let change = i64::from_str(caps.at(3).unwrap()).unwrap();
-            let mode = caps.at(2).unwrap();
+            let attendee = caps.get(1).unwrap().into();
+            let neighbour = caps.get(4).unwrap().into();
+            let change = i64::from_str(caps.get(3).unwrap().into()).unwrap();
+            let mode: &str = caps.get(2).unwrap().into();
 
             if mode == "gain" {
                 table.gain(attendee, change, neighbour);
