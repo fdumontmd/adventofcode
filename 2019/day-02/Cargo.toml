@@ -1,5 +1,5 @@
 [package]
-name = "day-01"
+name = "day-02"
 version = "0.1.0"
 authors = ["Frederic Dumont <fdumontmd@gmail.com>"]
 edition = "2018"
@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 aoc-utils = { path = "../../aoc-utils" }
+intcode = { path = "../intcode" }
 anyhow = "1.0.25"

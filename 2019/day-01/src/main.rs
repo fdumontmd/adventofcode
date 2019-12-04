@@ -1,6 +1,5 @@
-use std::error::Error;
-use std::result::Result;
 use aoc_utils::*;
+use anyhow::{Context, Result};
 
 fn basic_fuel(mass: i64) -> i64 {
     mass / 3 - 2
@@ -20,22 +19,21 @@ fn adv_fuel(mass: i64) -> i64 {
 }
 
 // this begs being a new utility function
-fn total_fuel<F>(f: F) -> Result<i64, Box<dyn Error>>
-    where F: Fn(i64) -> i64 {
+fn total_fuel(f: impl Fn(i64) -> i64) -> Result<i64> {
     let fuel = get_input().lines()
         .map(|line| {
-            line.map_err(|e| Box::new(e) as Box<dyn Error>)?
-                .parse()
-                .map_err(|e| Box::new(e) as Box<dyn Error>)
-
+            let line = line?;
+            line.parse()
+                .with_context(|| format!("cannot parse \"{}\" into number",
+                                         line))
         })
-        .collect::<Result<Vec<_>, _>>()?
+        .collect::<Result<Vec<_>>>()?
         .into_iter().map(f)
         .sum();
     Ok(fuel)
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     println!("Part 1: {}", total_fuel(basic_fuel)?);
     println!("Part 2: {}", total_fuel(adv_fuel)?);
     Ok(())
