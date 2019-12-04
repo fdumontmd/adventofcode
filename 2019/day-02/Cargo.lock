@@ -10,11 +10,19 @@ name = "aoc-utils"
 version = "0.1.0"
 
 [[package]]
-name = "day-01"
+name = "day-02"
 version = "0.1.0"
 dependencies = [
  "anyhow 1.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "aoc-utils 0.1.0",
+ "intcode 0.1.0",
+]
+
+[[package]]
+name = "intcode"
+version = "0.1.0"
+dependencies = [
+ "anyhow 1.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]
