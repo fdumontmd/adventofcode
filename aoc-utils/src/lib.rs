@@ -15,3 +15,4 @@ pub fn get_input() -> BufReader<File> {
 
 pub mod union_find;
 pub mod ring;
+pub mod permutations;
