@@ -1,29 +1,37 @@
 use anyhow::{Context, Error, Result};
 use std::ops::{Index, Range};
 use std::str::FromStr;
+use std::collections::VecDeque;
 
 pub type MemItem = i64;
 
 #[derive(Debug)]
 pub struct Computer {
-    memory: Vec<MemItem>,
     ic: MemItem,
-    input: MemItem,
+    memory: Vec<MemItem>,
+    input: VecDeque<MemItem>,
     output: Vec<MemItem>,
 }
 
 impl Computer {
     pub fn new(memory: Vec<MemItem>) -> Self {
+        let mut input = VecDeque::new();
+        input.push_back(1);
         Computer {
             memory,
             ic: 0,
-            input: 1,
+            input: input,
             output: Vec::new(),
         }
     }
 
     pub fn set_input(&mut self, input: MemItem) {
-        self.input = input;
+        self.input.clear();
+        self.input.push_back(input);
+    }
+
+    pub fn add_input(&mut self, input: MemItem) {
+        self.input.push_back(input);
     }
 
     pub fn is_stopped(&self) -> bool {
@@ -49,26 +57,29 @@ impl Computer {
     }
 
     pub fn step(&mut self) {
-        match self[self.ic] % 100 {
+        let opcode = self[self.ic];
+        match opcode % 100 {
             1 => {
-                if self.ic / 10000 != 0 {
-                    panic!("invalid address mode {:?}", self);
+                // TODO: write a macro to check for output parameter
+                // TODO: create a type that reads consumes the opcode and generates parameters
+                if opcode / 10000 != 0 {
+                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
                 }
                 let target = self.get_immediate(3) as usize;
                 self.memory[target] = self.get_value(1) + self.get_value(2);
                 self.ic += 4;
             }
             2 => {
-                if self.ic / 10000 != 0 {
-                    panic!("invalid address mode {:?}", self);
+                if opcode / 10000 != 0 {
+                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
                 }
                 let target = self.get_immediate(3) as usize;
                 self.memory[target] = self.get_value(1) * self.get_value(2);
                 self.ic += 4;
             }
             3 => {
-                if self.ic / 100 != 0 {
-                    panic!("invalid address mode {:?}", self);
+                if opcode / 100 != 0 {
+                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
                 }
                 let target = self.get_immediate(1) as usize;
                 self.memory[target] = self.get_input();
@@ -93,8 +104,8 @@ impl Computer {
                 }
             }
             7 => {
-                if self.ic / 1000 != 0 {
-                    panic!("invalid address mode {:?}", self);
+                if opcode / 10000 != 0 {
+                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
                 }
                 let target = self.get_immediate(3) as usize;
                 self.memory[target] = if self.get_value(1) < self.get_value(2) {
@@ -105,8 +116,8 @@ impl Computer {
                 self.ic += 4;
             }
             8 => {
-                if self.ic / 1000 != 0 {
-                    panic!("invalid address mode {:?}", self);
+                if opcode / 10000 != 0 {
+                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
                 }
                 let target = self.get_immediate(3) as usize;
                 self.memory[target] = if self.get_value(1) == self.get_value(2) {
@@ -124,7 +135,7 @@ impl Computer {
     }
 
     fn get_input(&mut self) -> MemItem {
-        self.input
+        self.input.pop_front().expect("no input left")
     }
 
     pub fn get_output(&self) -> Vec<MemItem> {
@@ -139,6 +150,13 @@ impl Computer {
         while !self.is_stopped() {
             self.step();
         }
+    }
+
+    pub fn wait_until_output(&mut self) -> Option<MemItem> {
+        while !self.is_stopped() && self.output.is_empty() {
+            self.step();
+        }
+        self.output.pop()
     }
 
     pub fn set_noun(&mut self, noun: MemItem) {
