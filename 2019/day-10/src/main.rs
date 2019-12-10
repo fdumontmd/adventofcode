@@ -70,10 +70,13 @@ fn find_best(desc: &str) -> (usize ,(usize, usize)) {
     *bases.iter().max().unwrap()
 }
 
+// y grows down, so initial up direction for laser is -pi/2
+// by flipping y around x axis, we also convert problem clockwise into
+// gradiant counter clockwise
 fn angle_to_gradiant(a: Angle) -> Float {
-    // swap x and y axis so that angle that go clockwise from vertical
-    // are mapped to angle that go counter clockwise from horizontal
+    // compute angle between target and -pi/2 angle
     let g = (a.1 as f32).atan2(a.0 as f32) + std::f32::consts::FRAC_PI_2;
+    // bracket into [0, 2pi[
     let g = if g < 0f32 {
             g + std::f32::consts::PI * 2f32
         } else {
@@ -88,6 +91,9 @@ fn angle_to_gradiant(a: Angle) -> Float {
     Float(g)
 }
 
+// comparable variation of float;
+// all floats used in this program are nicely
+// comparable
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq)]
 struct Float(f32);
 
