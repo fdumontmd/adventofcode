@@ -10,7 +10,7 @@ struct Amplifier {
 impl Amplifier {
     fn new(code: &str, phase: MemItem) -> Self {
         let mut computer: Computer = code.parse().expect("cannot parse code");
-        computer.set_input(phase);
+        computer.add_input(phase);
         Amplifier {
             computer
         }

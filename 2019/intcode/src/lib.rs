@@ -1,13 +1,202 @@
 use anyhow::{Context, Error, Result};
+use std::convert::TryInto;
 use std::ops::{Index, Range};
 use std::str::FromStr;
 use std::collections::VecDeque;
 
 pub type MemItem = i64;
 
+enum ParameterMode {
+    Position,
+    Immediate,
+    Relative,
+}
+
+impl ParameterMode {
+    fn new(mode: MemItem) -> Self {
+        match mode {
+            0 => ParameterMode::Position,
+            1 => ParameterMode::Immediate,
+            2 => ParameterMode::Relative,
+            _ => unreachable!(),
+        }
+    }
+}
+
+enum OpCode {
+    Add,
+    Mul,
+    Input,
+    Output,
+    JIT,
+    JIF,
+    TLT,
+    TEq,
+    SetBase,
+    Stop,
+}
+
+impl OpCode {
+    fn new(opcode: MemItem) -> Self {
+        use OpCode::*;
+        match opcode % 100 {
+            1 => Add,
+            2 => Mul,
+            3 => Input,
+            4 => Output,
+            5 => JIT,
+            6 => JIF,
+            7 => TLT,
+            8 => TEq,
+            9 => SetBase,
+            99 => Stop,
+            _ => panic!(format!("unknown opcode {}", opcode)),
+        }
+    }
+
+    fn parameter_count(&self) -> usize {
+        use OpCode::*;
+        match *self {
+            Add | Mul | TLT |TEq => 3,
+            JIT | JIF => 2,
+            Input | Output | SetBase => 1,
+            Stop => 0,
+        }
+    }
+}
+
+struct Instruction<'a> {
+    computer: &'a mut Computer,
+    opcode: OpCode,
+    parameters: Vec<ParameterMode>,
+}
+
+impl<'a> Instruction<'a> {
+    fn new(computer: &'a mut Computer) -> Self {
+        let instr = computer.get_instruction();
+        let opcode = OpCode::new(instr);
+
+        let mut modes = instr / 100;
+        let mut parameters = Vec::new();
+
+        for _ in 0..opcode.parameter_count() {
+            parameters.push(ParameterMode::new(modes % 10));
+            modes /= 10;
+        }
+
+        Self {
+            computer,
+            opcode, 
+            parameters,
+        }
+    }
+
+    fn get(&mut self, param: usize) -> MemItem {
+        match self.parameters[param - 1] {
+            ParameterMode::Position => {
+                let location = self.computer.get_parameter(param) as usize;
+                self.computer.get_at(location)
+            }
+            ParameterMode::Immediate => {
+                self.computer.get_parameter(param)
+            }
+            ParameterMode::Relative => {
+                let relative = self.computer.get_parameter(param) as isize;
+                let location: usize = (relative + self.computer.base).try_into().unwrap();
+                self.computer.get_at(location)
+            }
+        }
+    }
+
+    fn set(&mut self, param: usize, value: MemItem) {
+        let location = match self.parameters[param - 1] {
+            ParameterMode::Position => self.computer.get_parameter(param) as usize,
+            ParameterMode::Relative => {
+                let relative = self.computer.get_parameter(param) as isize;
+                (relative + self.computer.base).try_into().unwrap()
+            }
+            ParameterMode::Immediate => {
+                panic!(format!("cannot write to immediate parameter: ic: {}, instr: {}", self.computer.ic, self.computer.get_instruction()))
+            }
+        };
+        self.computer.set_at(location, value);
+    }
+
+    fn increase_ic(&mut self) {
+        self.computer.ic += self.opcode.parameter_count() + 1;
+    }
+
+    fn execute(&mut self) {
+        use OpCode::*;
+        match self.opcode {
+            Add => {
+                let value = self.get(1) + self.get(2);
+                self.set(3, value);
+                self.increase_ic();
+            }
+            Mul => {
+                let value = self.get(1) * self.get(2);
+                self.set(3, value);
+                self.increase_ic();
+            }
+            Input => {
+                let value = self.computer.get_input();
+                self.set(1, value);
+                self.increase_ic();
+            }
+            Output => {
+                let value = self.get(1);
+                self.computer.emit_output(value);
+                self.increase_ic();
+            }
+            JIT => {
+                if self.get(1) != 0 {
+                    self.computer.ic = self.get(2) as usize;
+                } else {
+                    self.increase_ic();
+                }
+            }
+            JIF => {
+                if self.get(1) == 0 {
+                    self.computer.ic = self.get(2) as usize;
+                } else {
+                    self.increase_ic();
+                }
+            }
+            TLT => {
+                if self.get(1) < self.get(2) {
+                    self.set(3, 1);
+                } else {
+                    self.set(3, 0);
+                }
+
+                self.increase_ic();
+            }
+            TEq => {
+                if self.get(1) == self.get(2) {
+                    self.set(3, 1);
+                } else {
+                    self.set(3, 0);
+                }
+
+                self.increase_ic();
+            }
+            SetBase => {
+                self.computer.base += self.get(1) as isize;
+
+                self.increase_ic();
+            }
+
+            Stop => {}
+        }
+
+    }
+}
+
 #[derive(Debug)]
 pub struct Computer {
-    ic: MemItem,
+    ic: usize,
+    base: isize,
     memory: Vec<MemItem>,
     input: VecDeque<MemItem>,
     output: Vec<MemItem>,
@@ -15,19 +204,31 @@ pub struct Computer {
 
 impl Computer {
     pub fn new(memory: Vec<MemItem>) -> Self {
-        let mut input = VecDeque::new();
-        input.push_back(1);
         Computer {
             memory,
             ic: 0,
-            input: input,
+            base: 0,
+            input: VecDeque::new(),
             output: Vec::new(),
         }
     }
 
-    pub fn set_input(&mut self, input: MemItem) {
-        self.input.clear();
-        self.input.push_back(input);
+    fn get_at(&mut self, location: usize) -> MemItem {
+        if location >= self.memory.len() {
+            self.memory.resize(location + 1, 0);
+        }
+        self.memory[location]
+    }
+
+    fn set_at(&mut self, location: usize, value: MemItem) {
+        if location >= self.memory.len() {
+            self.memory.resize(location + 1, 0);
+        }
+        self.memory[location] = value;
+    }
+
+    fn get_instruction(&self) -> MemItem {
+        self.memory[self.ic as usize]
     }
 
     pub fn add_input(&mut self, input: MemItem) {
@@ -35,107 +236,19 @@ impl Computer {
     }
 
     pub fn is_stopped(&self) -> bool {
-        self.ic as usize >= self.memory.len() || self[self.ic] == 99
+        self.ic as usize >= self.memory.len() || self.get_instruction() == 99
     }
 
-    fn get_immediate(&self, offset: usize) -> MemItem {
+    fn get_parameter(&self, offset: usize) -> MemItem {
         self.memory[self.ic as usize + offset]
     }
 
-    fn get_value(&self, offset: usize) -> MemItem {
-        let modes = self[self.ic] / 100;
-
-        let v = self.memory[self.ic as usize + offset];
-
-        let mode = (modes / 10i64.pow(offset as u32 - 1)) % 10;
-
-        if mode == 0 {
-            self.memory[v as usize]
-        } else {
-            v
-        }
-    }
-
     pub fn step(&mut self) {
-        let opcode = self[self.ic];
-        match opcode % 100 {
-            1 => {
-                // TODO: write a macro to check for output parameter
-                // TODO: create a type that reads consumes the opcode and generates parameters
-                if opcode / 10000 != 0 {
-                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
-                }
-                let target = self.get_immediate(3) as usize;
-                self.memory[target] = self.get_value(1) + self.get_value(2);
-                self.ic += 4;
-            }
-            2 => {
-                if opcode / 10000 != 0 {
-                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
-                }
-                let target = self.get_immediate(3) as usize;
-                self.memory[target] = self.get_value(1) * self.get_value(2);
-                self.ic += 4;
-            }
-            3 => {
-                if opcode / 100 != 0 {
-                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
-                }
-                let target = self.get_immediate(1) as usize;
-                self.memory[target] = self.get_input();
-                self.ic += 2;
-            }
-            4 => {
-                self.emit_output(self.get_value(1));
-                self.ic += 2;
-            }
-            5 => {
-                if self.get_value(1) != 0 {
-                    self.ic = self.get_value(2);
-                } else {
-                    self.ic += 3;
-                }
-            }
-            6 => {
-                if self.get_value(1) == 0 {
-                    self.ic = self.get_value(2);
-                } else {
-                    self.ic += 3;
-                }
-            }
-            7 => {
-                if opcode / 10000 != 0 {
-                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
-                }
-                let target = self.get_immediate(3) as usize;
-                self.memory[target] = if self.get_value(1) < self.get_value(2) {
-                    1
-                } else {
-                    0
-                };
-                self.ic += 4;
-            }
-            8 => {
-                if opcode / 10000 != 0 {
-                    panic!("invalid address mode for opcode {} - {:?}", self[self.ic], self);
-                }
-                let target = self.get_immediate(3) as usize;
-                self.memory[target] = if self.get_value(1) == self.get_value(2) {
-                    1
-                } else {
-                    0
-                };
-                self.ic += 4;
-            }
-            99 => {}
-            _ => {
-                panic!("Unknown opcode {} at addess {}", self[self.ic], self.ic);
-            }
-        }
-    }
+        Instruction::new(self).execute();
+   }
 
     fn get_input(&mut self) -> MemItem {
-        self.input.pop_front().expect("no input left")
+        self.input.pop_front().unwrap()
     }
 
     pub fn get_output(&self) -> Vec<MemItem> {
@@ -230,10 +343,11 @@ mod tests {
     #[test]
     fn test_input_eq_8() -> Result<()> {
         let mut computer: Computer = "3,9,8,9,10,9,4,9,99,-1,8".parse()?;
+        computer.add_input(1);
         computer.run();
         assert_eq!(computer.output, vec![0]);
         let mut computer: Computer = "3,9,8,9,10,9,4,9,99,-1,8".parse()?;
-        computer.set_input(8);
+        computer.add_input(8);
         computer.run();
         assert_eq!(computer.output, vec![1]);
         Ok(())
@@ -242,10 +356,11 @@ mod tests {
     #[test]
     fn test_less_than_8() -> Result<()> {
         let mut computer: Computer = "3,9,7,9,10,9,4,9,99,-1,8".parse()?;
+        computer.add_input(1);
         computer.run();
         assert_eq!(computer.output, vec![1]);
         let mut computer: Computer = "3,9,7,9,10,9,4,9,99,-1,8".parse()?;
-        computer.set_input(9);
+        computer.add_input(9);
         computer.run();
         assert_eq!(computer.output, vec![0]);
         Ok(())
@@ -254,10 +369,11 @@ mod tests {
     #[test]
     fn test_input_eq_8_imm() -> Result<()> {
         let mut computer: Computer = "3,3,1108,-1,8,3,4,3,99".parse()?;
+        computer.add_input(1);
         computer.run();
         assert_eq!(computer.output, vec![0]);
         let mut computer: Computer = "3,3,1108,-1,8,3,4,3,99".parse()?;
-        computer.set_input(8);
+        computer.add_input(8);
         computer.run();
         assert_eq!(computer.output, vec![1]);
         Ok(())
@@ -266,13 +382,37 @@ mod tests {
     #[test]
     fn test_less_than_8_imm() -> Result<()> {
         let mut computer: Computer = "3,3,1107,-1,8,3,4,3,99".parse()?;
+        computer.add_input(1);
         computer.run();
         assert_eq!(computer.output, vec![1]);
         let mut computer: Computer = "3,3,1107,-1,8,3,4,3,99".parse()?;
-        computer.set_input(9);
+        computer.add_input(9);
         computer.run();
         assert_eq!(computer.output, vec![0]);
         Ok(())
     }
 
+    #[test]
+    fn test_copy() -> Result<()> {
+        let mut computer: Computer = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99".parse()?;
+        computer.run();
+        assert_eq!(computer.output, vec![109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_rebase_output() -> Result<()> {
+        let mut computer: Computer = "1102,34915192,34915192,7,4,7,99,0".parse()?;
+        computer.run();
+        assert_eq!(computer.get_output(), vec![1219070632396864]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_big_number() -> Result<()> {
+        let mut computer: Computer = "104,1125899906842624,99".parse()?;
+        computer.run();
+        assert_eq!(computer.get_output(), vec![1125899906842624]);
+        Ok(())
+    }
 }
