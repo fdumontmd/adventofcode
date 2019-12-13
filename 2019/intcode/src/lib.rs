@@ -213,14 +213,14 @@ impl Computer {
         }
     }
 
-    fn get_at(&mut self, location: usize) -> MemItem {
+    pub fn get_at(&mut self, location: usize) -> MemItem {
         if location >= self.memory.len() {
             self.memory.resize(location + 1, 0);
         }
         self.memory[location]
     }
 
-    fn set_at(&mut self, location: usize, value: MemItem) {
+    pub fn set_at(&mut self, location: usize, value: MemItem) {
         if location >= self.memory.len() {
             self.memory.resize(location + 1, 0);
         }
