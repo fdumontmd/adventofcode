@@ -1,7 +1,6 @@
 use anyhow::*;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 static INPUT: &str = include_str!("input.txt");
@@ -224,15 +223,14 @@ impl Coordinate {
         self.0.iter_mut().zip(self.1.iter()).for_each(|(p, &v)| *p += v);
     }
 
-    fn cycle(&mut self) -> (usize, usize) {
-        let mut seen = HashMap::new();
-        seen.insert(*self, 0);
+    fn cycle(&mut self) -> usize {
+        let orig = *self;
 
         for count in 0.. {
             self.step();
 
-            if let Some(previous) = seen.insert(*self, count + 1) {
-                return (previous, count + 1);
+            if *self == orig {
+                return count + 1;
             }
         }
         unreachable!()
@@ -271,15 +269,12 @@ fn planets_cycle(desc: &str) -> usize {
 
     let z_cycle = coordinate.cycle();
 
-    let starts = vec![x_cycle.0, y_cycle.0, z_cycle.0];
-    let start = starts.into_iter().max().unwrap();
+    // then lcm 
+    let cd = gcd(x_cycle, y_cycle);
+    let xy = x_cycle / cd * y_cycle;
 
-    // then start + lcm 
-    let cd = gcd(x_cycle.1, y_cycle.1);
-    let xy = x_cycle.1 / cd * y_cycle.1;
-
-    let cd = gcd(xy, z_cycle.1);
-    start + xy / cd * z_cycle.1
+    let cd = gcd(xy, z_cycle);
+    xy / cd * z_cycle
 }
 
 fn part_2() -> usize {
