@@ -13,6 +13,7 @@ struct Recipe<'a> {
 
 struct Reactions<'a> {
     formulae: HashMap<&'a str, Recipe<'a>>,
+    ingredients: Vec<&'a str>,
 }
 
 impl<'a> Reactions<'a> {
@@ -53,8 +54,7 @@ impl<'a> Reactions<'a> {
     }
 
     fn produce_total(&self, target: &str, total: usize) -> usize {
-        let mut ingredients = order_targets(self);
-
+        let mut ingredients = self.ingredients.clone();
         let mut counts = HashMap::new();
         counts.insert(target, total);
 
@@ -123,26 +123,27 @@ fn parse_reactions<'a>(desc: &'a str) -> Reactions<'a> {
         formulae.insert(recipe.target.1, recipe);
     }
 
-    Reactions { formulae }
+    let ingredients = order_targets(&formulae);
+    Reactions { formulae, ingredients, }
 }
 
 struct TopologicalSort<'a, 'b> {
     targets: Vec<&'a str>,
-    reactions: &'b Reactions<'a>,
+    map: &'b HashMap<&'a str, Recipe<'a>>,
     permanent: HashSet<&'a str>,
     temporary: HashSet<&'a str>,
 }
 
 impl<'a, 'b> TopologicalSort<'a, 'b> {
-    fn sort(reactions: &'b Reactions<'a>) -> Vec<&'a str> {
+    fn sort(map: &'b HashMap<&'a str, Recipe<'a>>) -> Vec<&'a str> {
         let mut ts = TopologicalSort {
             targets: Vec::new(),
-            reactions,
+            map,
             permanent: HashSet::new(),
             temporary: HashSet::new(),
         };
 
-        for n in ts.reactions.formulae.keys() {
+        for n in ts.map.keys() {
             ts.visit(n);
         }
 
@@ -158,7 +159,7 @@ impl<'a, 'b> TopologicalSort<'a, 'b> {
         }
         self.temporary.insert(n);
 
-        self.reactions.formulae.get(n).map(|r| {
+        self.map.get(n).map(|r| {
             r.source.iter().for_each(|i| {
                 self.visit(i.1);
             });
@@ -170,8 +171,8 @@ impl<'a, 'b> TopologicalSort<'a, 'b> {
     }
 }
 
-fn order_targets<'a>(reactions: &Reactions<'a>) -> Vec<&'a str> {
-    TopologicalSort::sort(reactions)
+fn order_targets<'a>(map: &HashMap<&'a str, Recipe<'a>>) -> Vec<&'a str> {
+    TopologicalSort::sort(map)
 }
 
 fn part_1() -> usize {
