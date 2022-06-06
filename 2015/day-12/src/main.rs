@@ -49,7 +49,7 @@ fn main() {
     let re = Regex::new(r"(-?\d+)").unwrap();
     let mut sum = 0;
     for caps in re.captures_iter(&buffer) {
-        sum += i64::from_str(caps.at(1).unwrap()).unwrap();
+        sum += i64::from_str(caps.get(1).unwrap().as_str()).unwrap();
     }
 
     println!("total: {}", sum);

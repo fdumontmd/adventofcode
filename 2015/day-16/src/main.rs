@@ -29,8 +29,8 @@ fn main() {
     for line in buffer.lines() {
         let mut is_match = true;
         for caps in re.captures_iter(&line) {
-            let item = caps.at(1).unwrap();
-            let count = usize::from_str(caps.at(2).unwrap()).unwrap();
+            let item = caps.get(1).unwrap().as_str();
+            let count = usize::from_str(caps.get(2).unwrap().as_str()).unwrap();
             if count != 0 {
                 let info_count = *info.get(item).unwrap();
                 is_match &= info_count == count;
@@ -49,8 +49,8 @@ fn main() {
     for line in buffer.lines() {
         let mut is_match = true;
         for caps in re.captures_iter(&line) {
-            let item = caps.at(1).unwrap();
-            let count = usize::from_str(caps.at(2).unwrap()).unwrap();
+            let item = caps.get(1).unwrap().as_str();
+            let count = usize::from_str(caps.get(2).unwrap().as_str()).unwrap();
             let info_count = *info.get(item).unwrap();
             is_match &= if item == "cats" || item == "trees" {
                     info_count < count
