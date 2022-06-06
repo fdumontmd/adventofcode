@@ -160,12 +160,12 @@ fn main() {
 
     for line in buffer.lines() {
         if let Some(ref caps) = re.captures(line) {
-            let ingredient = caps.at(1).unwrap();
-            let capacity = i64::from_str(caps.at(2).unwrap()).unwrap();
-            let durability = i64::from_str(caps.at(3).unwrap()).unwrap();
-            let flavor = i64::from_str(caps.at(4).unwrap()).unwrap();
-            let texture = i64::from_str(caps.at(5).unwrap()).unwrap();
-            let calories = i64::from_str(caps.at(6).unwrap()).unwrap();
+            let ingredient = caps.get(1).unwrap().as_str();
+            let capacity = i64::from_str(caps.get(2).unwrap().as_str()).unwrap();
+            let durability = i64::from_str(caps.get(3).unwrap().as_str()).unwrap();
+            let flavor = i64::from_str(caps.get(4).unwrap().as_str()).unwrap();
+            let texture = i64::from_str(caps.get(5).unwrap().as_str()).unwrap();
+            let calories = i64::from_str(caps.get(6).unwrap().as_str()).unwrap();
 
             cookie.add_ingredient(ingredient, Ingredient::new(capacity, durability, flavor, texture, calories));
         }
