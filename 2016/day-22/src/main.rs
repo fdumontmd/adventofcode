@@ -27,8 +27,8 @@ fn parse_name(name: &str) -> GridIndex {
     }
 
     if let Some(ref caps) = RE.captures(name) {
-        (i32::from_str(caps.at(1).unwrap()).unwrap(),
-         i32::from_str(caps.at(2).unwrap()).unwrap())
+        (i32::from_str(caps.get(1).unwrap().as_str()).unwrap(),
+         i32::from_str(caps.get(2).unwrap().as_str()).unwrap())
     } else {
         panic!("Cannot parse name {}", name);
     }
@@ -216,10 +216,10 @@ fn main() {
 
     for line in buffer.lines() {
         if let Some(ref caps) = re.captures(&line) {
-            let name = caps.at(1).unwrap();
-            let total = usize::from_str(caps.at(2).unwrap()).unwrap();
-            let used = usize::from_str(caps.at(3).unwrap()).unwrap();
-            let avail = usize::from_str(caps.at(4).unwrap()).unwrap();
+            let name = caps.get(1).unwrap().as_str();
+            let total = usize::from_str(caps.get(2).unwrap().as_str()).unwrap();
+            let used = usize::from_str(caps.get(3).unwrap().as_str()).unwrap();
+            let avail = usize::from_str(caps.get(4).unwrap().as_str()).unwrap();
 
             let (x, y) = parse_name(name);
             nodes.push(Node{ name: name, index: (x, y), total: total, avail: avail, used: used});
