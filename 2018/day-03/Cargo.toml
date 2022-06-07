@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 aoc-utils = { path = "../../aoc-utils" }
-regex = "1.1.0"
-lazy_static = "1.2.0"
+regex = "1.5.6"
+lazy_static = "1.4.0"
