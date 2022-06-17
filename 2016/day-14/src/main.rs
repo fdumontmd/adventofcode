@@ -1,9 +1,10 @@
-extern crate crypto;
+extern crate md5;
+extern crate hex;
 
 use std::collections::vec_deque::VecDeque;
 
-use crypto::md5::Md5;
-use crypto::digest::Digest;
+use md5::{Md5, Digest};
+use hex::encode;
 
 const WINDOW: usize = 1000;
 const BUFFER_LEN: usize = WINDOW + 1;
@@ -18,9 +19,9 @@ struct Iter<'s> {
 fn hash(salt: &str, index: u64) -> (u64, String) {
     let mut md5 = Md5::new();
     let index_str = format!("{}", index);
-    md5.input_str(salt);
-    md5.input_str(&index_str);
-    (index, md5.result_str())
+    md5.update(salt.as_bytes());
+    md5.update(&index_str.as_bytes());
+    (index, encode(md5.finalize()))
 }
 
 impl<'s> Iter<'s> {
@@ -93,15 +94,14 @@ impl<'s> Iterator for Iter<'s> {
 fn hash2016(salt: &str, index: u64) -> (u64, String) {
     let mut md5 = Md5::new();
     let index_str = format!("{}", index);
-    md5.input_str(salt);
-    md5.input_str(&index_str);
-    let mut str = md5.result_str();
+    md5.update(salt.as_bytes());
+    md5.update(&index_str.as_bytes());
+    let mut str = encode(md5.finalize_reset());
     for _ in 0..2016 {
-        md5.reset();
-        md5.input_str(&str);
-        str = md5.result_str();
+        md5.update(&str.as_bytes());
+        str = encode(md5.finalize_reset());
     }
-    (index, md5.result_str())
+    (index, str)
 }
 
 fn main() {

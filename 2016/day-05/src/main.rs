@@ -1,9 +1,10 @@
-extern crate crypto;
+extern crate md5;
+extern crate hex;
 
 use std::char;
 
-use crypto::digest::Digest;
-use crypto::md5;
+use md5::{Md5, Digest};
+use hex::encode;
 
 static KEY: &'static str = "abbhdwsy";
 
@@ -12,9 +13,9 @@ fn is_password_letter(index: u32, key: &str) -> Option<(char, char)> {
     buffer.push_str(key);
     buffer.push_str(&index.to_string());
 
-    let mut hasher = md5::Md5::new();
-    hasher.input_str(&buffer);
-    let hash = hasher.result_str();
+    let mut hasher = Md5::new();
+    hasher.update(buffer.as_bytes());
+    let hash = encode(hasher.finalize());
 
     if hash.starts_with("00000") {
         let bytes = hash.as_bytes();
