@@ -40,6 +40,12 @@ impl<T> Ring<T> {
     }
 }
 
+impl<T> Default for Ring<T> {
+    fn default() -> Self {
+        Ring::new()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

@@ -1,7 +1,8 @@
 use std::fmt;
-use std::io;
 use std::num::ParseIntError;
 use std::str::FromStr;
+
+static INPUT: &str = include_str!("input.txt");
 
 type Size = u32;
 
@@ -80,39 +81,56 @@ impl FromStr for Box {
             return Err(ParseBoxError::ParameterCountError);
         }
 
-        let l = try!(v[0].parse());
-        let w = try!(v[1].parse());
-        let h = try!(v[2].parse());
+        let l = v[0].parse()?;
+        let w = v[1].parse()?;
+        let h = v[2].parse()?;
 
         Ok(Box::new(l, w, h))
     }
 }
 
+struct Total {
+    area: u32,
+    ribbon: u32,
+}
 
+impl FromStr for Total {
+    type Err = ParseBoxError;
 
-fn main() {
-    let mut total_area = 0;
-    let mut total_ribbon = 0;
-
-    let mut input = String::new();
-
-    while io::stdin().read_line(&mut input).is_ok() {
-        if let Ok(b) = input.parse::<Box>() {
-            total_area += b.total_area();
-            total_ribbon += b.total_ribbon();
-        } else {
-            break;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut area = 0;
+        let mut ribbon = 0;
+        for line in s.lines() {
+            let b: Box = line.parse()?;
+            area += b.total_area();
+            ribbon += b.total_ribbon();
         }
-        input.clear();
+        Ok(Total {
+            area,
+            ribbon,
+        })
     }
+}
 
-    println!("Total area: {}", total_area);
-    println!("Total ribbon: {}", total_ribbon);
+fn main() -> Result<(), ParseBoxError> {
+    let t: Total = INPUT.parse()?;
+
+    println!("Total area: {}", t.area);
+    println!("Total ribbon: {}", t.ribbon);
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Box;
+    use super::{Box, INPUT, Total};
+
+    #[test]
+    fn test_solutions() {
+        let t: Total = INPUT.parse().unwrap();
+
+        assert_eq!(t.area, 1588178);
+        assert_eq!(t.ribbon, 3783758);
+    }
 
     #[test]
     fn two_by_three_by_four() {
