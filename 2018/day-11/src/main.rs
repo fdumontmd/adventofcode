@@ -1,3 +1,7 @@
+// todo: use Position throughout the code to prevent this stupid +1 error
+// and implement suitable Display to output the solution cleanly
+// look at https://en.wikipedia.org/wiki/Summed-area_table
+// can compute side in terms of 1 + 1 + (side-1) + (side-1) - (side -2)
 const INPUT: i64 = 7139;
 
 const SIDE: usize = 300;
@@ -76,11 +80,13 @@ impl Grid {
 
     fn best_square(&self) -> (usize, usize, usize) {
         // memoization to the rescue
+        // HashMap might be too costly; a 3D array might be better
         use std::collections::HashMap;
         let mut memo: HashMap<(usize, usize, usize), i64> = HashMap::new();
         // copy square of size 1:
         for y in 0..SIDE {
             for x in 0..SIDE {
+                memo.insert((x + 1, y + 1, 0), 0);
                 memo.insert((x + 1, y + 1, 1),self.grid[y][x]);
             }
         }
@@ -88,13 +94,11 @@ impl Grid {
         for side in 2..=SIDE {
             for y in 0..(SIDE-side+1) {
                 for x in 0..(SIDE-side+1) {
-                    let mut current = memo[&(x + 1, y + 1, side-1)];
-                    for dx in 0..side {
-                        current += self.grid[y+side-1][x+dx];
-                    }
-                    for dy in 0..(side-1) {
-                        current += self.grid[y+dy][x+side-1];
-                    }
+                    let current = self.grid[y][x]
+                        + self.grid[y + side - 1][x + side - 1]
+                        + memo[&(x+2, y + 1, side-1)]
+                        + memo[&(x + 1, y+2, side-1)]
+                        - memo[&(x+2, y+2, side-2)];
                     memo.insert((x + 1, y + 1, side), current);
                 }
             }
@@ -110,11 +114,6 @@ fn main() {
     let grid = Grid::new(INPUT);
     println!("part one: {:?}", grid.best_square_power(3));
     println!("part two: {:?}", grid.best_square());
-    println!("part two': {:?}", grid.best_square_power(16));
-
-    for side in 0..SIDE {
-        println!("part two'': best for side {}: {:?}", side + 1, grid.best_square_power(side+1));
-    }
 }
 
 #[cfg(test)]

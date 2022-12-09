@@ -25,7 +25,7 @@ impl<'a> Reactions<'a> {
         let mut low = 1;
         let mut high = 5000;
 
-        while self.produce_total("FUEL", high) < capacity {
+        while self.produce_total(high) < capacity {
             high *= 2;
         }
 
@@ -36,7 +36,7 @@ impl<'a> Reactions<'a> {
 
             let mid = low + (high - low) / 2;
 
-            let cost = self.produce_total("FUEL", mid);
+            let cost = self.produce_total(mid);
             if cost == capacity {
                 return mid;
             }
@@ -49,14 +49,14 @@ impl<'a> Reactions<'a> {
         }
     }
 
-    fn produce(&self, target: &str) -> usize {
-        self.produce_total(target, 1)
+    fn produce(&self) -> usize {
+        self.produce_total(1)
     }
 
-    fn produce_total(&self, target: &str, total: usize) -> usize {
+    fn produce_total(&self, total: usize) -> usize {
         let mut ingredients = self.ingredients.clone();
         let mut counts = HashMap::new();
-        counts.insert(target, total);
+        counts.insert("FUEL", total);
 
         let mut count;
 
@@ -176,7 +176,7 @@ fn order_targets<'a>(map: &HashMap<&'a str, Recipe<'a>>) -> Vec<&'a str> {
 }
 
 fn part_1() -> usize {
-    Reactions::new(INPUT).produce("FUEL")
+    Reactions::new(INPUT).produce()
 }
 
 fn part_2() -> usize {
@@ -200,7 +200,7 @@ mod test {
 
     #[test]
     fn test_1() {
-        assert_eq!(Reactions::new(TEST_1).produce("FUEL"), 31);
+        assert_eq!(Reactions::new(TEST_1).produce(), 31);
     }
 
     static TEST_2: &str = r#"9 ORE => 2 A
@@ -213,7 +213,7 @@ mod test {
 
     #[test]
     fn test_2() {
-        assert_eq!(Reactions::new(TEST_2).produce("FUEL"), 165);
+        assert_eq!(Reactions::new(TEST_2).produce(), 165);
     }
 
     static TEST_3: &str = r#"157 ORE => 5 NZVS
@@ -228,7 +228,7 @@ mod test {
 
     #[test]
     fn test_3() {
-        assert_eq!(Reactions::new(TEST_3).produce("FUEL"), 13312);
+        assert_eq!(Reactions::new(TEST_3).produce(), 13312);
     }
 
     static TEST_4: &str = r#"2 VPVL, 7 FWMGM, 2 CXFTF, 11 MNCFX => 1 STKFG
@@ -246,7 +246,7 @@ mod test {
 
     #[test]
     fn test_4() {
-        assert_eq!(Reactions::new(TEST_4).produce("FUEL"), 180697);
+        assert_eq!(Reactions::new(TEST_4).produce(), 180697);
     }
 
     static TEST_5: &str = r#"171 ORE => 8 CNZTR
@@ -269,7 +269,7 @@ mod test {
 
     #[test]
     fn test_5() {
-        assert_eq!(Reactions::new(TEST_5).produce("FUEL"), 2210736);
+        assert_eq!(Reactions::new(TEST_5).produce(), 2210736);
     }
 
     #[test]
