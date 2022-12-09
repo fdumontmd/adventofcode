@@ -286,7 +286,7 @@ impl FromStr for Computer {
 
     fn from_str(s: &str) -> Result<Self> {
         let memory: Vec<MemItem> = s
-            .split(",")
+            .split(',')
             .map(|code| {
                 code.trim()
                     .parse::<MemItem>()
