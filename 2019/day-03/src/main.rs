@@ -1,8 +1,8 @@
-use aoc_utils::*;
 use anyhow::*;
+use aoc_utils::*;
+use std::collections::HashSet;
 use std::io::Read;
 use std::str::FromStr;
-use std::collections::HashSet;
 
 enum Direction {
     Up,
@@ -50,7 +50,7 @@ impl FromStr for Segment {
         if s.len() > 1 {
             let dir = s[0..1].parse::<Direction>()?;
             let len = s[1..].parse::<usize>()?;
-            Ok(Segment{dir, len})
+            Ok(Segment { dir, len })
         } else {
             Err(anyhow!("Invalid segment {}", s))
         }
@@ -99,8 +99,13 @@ impl Wire {
 impl FromStr for Wire {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self> {
-        let path: Vec<Segment> = s.split(",").map(str::trim).map(str::parse::<Segment>).collect::<Result<Vec<_>>>().with_context(|| format!("cannot parse wire {}", s))?;
-        Ok(Wire{path})
+        let path: Vec<Segment> = s
+            .split(",")
+            .map(str::trim)
+            .map(str::parse::<Segment>)
+            .collect::<Result<Vec<_>>>()
+            .with_context(|| format!("cannot parse wire {}", s))?;
+        Ok(Wire { path })
     }
 }
 
@@ -114,9 +119,15 @@ impl FromStr for Circuit {
     fn from_str(s: &str) -> Result<Self> {
         let mut lines = s.lines();
 
-        let wire1 = lines.next().ok_or(anyhow!("not enough data for wire 1"))?.parse()?;
-        let wire2 = lines.next().ok_or(anyhow!("not enough data for wire 2"))?.parse()?;
-        Ok(Circuit{wire1, wire2})
+        let wire1 = lines
+            .next()
+            .ok_or(anyhow!("not enough data for wire 1"))?
+            .parse()?;
+        let wire2 = lines
+            .next()
+            .ok_or(anyhow!("not enough data for wire 2"))?
+            .parse()?;
+        Ok(Circuit { wire1, wire2 })
     }
 }
 
@@ -129,9 +140,7 @@ impl Circuit {
     }
     fn compute_min_intersection(&self) -> Option<(isize, isize)> {
         let mut intersect = self.intersection();
-        intersect.sort_by(|p1, p2| {
-            (p1.0.abs() + p1.1.abs()).cmp(&(p2.0.abs() + p2.1.abs()))
-        });
+        intersect.sort_by(|p1, p2| (p1.0.abs() + p1.1.abs()).cmp(&(p2.0.abs() + p2.1.abs())));
         intersect.get(0).cloned()
     }
 
@@ -142,9 +151,14 @@ impl Circuit {
     }
 
     fn best_len_to(&self) -> Option<usize> {
-        self.intersection().into_iter().map(|p| self.compute_len_to(p))
+        self.intersection()
+            .into_iter()
+            .map(|p| self.compute_len_to(p))
             .collect::<Option<Vec<_>>>()
-            .map(|mut v| {v.sort(); v})
+            .map(|mut v| {
+                v.sort();
+                v
+            })
             .and_then(|v: Vec<usize>| v.into_iter().min())
     }
 }
