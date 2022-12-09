@@ -1,8 +1,7 @@
-use std::io;
-use std::io::Read;
 use std::iter::Iterator;
 use std::str;
 
+static INPUT: &str = include_str!("input.txt");
 struct FloorIterator<'a> {
     c: str::Chars<'a>,
     floor: i64,
@@ -34,8 +33,9 @@ impl<'a> Iterator for FloorIterator<'a> {
     }
 }
 
-fn floor(input: &str) -> Option<i64> {
-    FloorIterator::new(input).last()
+fn floor(input: &str) -> i64 {
+    // start on floor 0, if no button pushed we stay there
+    FloorIterator::new(input).last().unwrap_or(0)
 }
 
 fn first_basement(input: &str) -> Option<usize> {
@@ -43,46 +43,53 @@ fn first_basement(input: &str) -> Option<usize> {
 }
 
 fn main() {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-
-    println!("Floor: {:?}", floor(&input));
-    println!("First basement: {:?}", first_basement(&input));
+    println!("Floor: {}", floor(&INPUT));
+    println!("First basement: {}", first_basement(&INPUT).unwrap());
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{floor, first_basement};
+    use super::{floor, first_basement, INPUT};
 
     #[test]
-    fn no_floor() {
-        assert_eq!(floor(""), None);
+    fn test_part_1() {
+        assert_eq!(floor(INPUT), 138);
+    }
+
+    #[test]
+    fn test_part_2() {
+        assert_eq!(first_basement(INPUT), Some(1771));
+    }
+
+    #[test]
+    fn no_button() {
+        assert_eq!(floor(""), 0);
         assert_eq!(first_basement(""), None);
     }
 
     #[test]
     fn floor_0() {
-        assert_eq!(floor("(())"), Some(0));
-        assert_eq!(floor("()()"), Some(0));
+        assert_eq!(floor("(())"), 0);
+        assert_eq!(floor("()()"), 0);
     }
 
     #[test]
     fn floor_3() {
-        assert_eq!(floor("((("), Some(3));
-        assert_eq!(floor("(()(()("), Some(3));
-        assert_eq!(floor("))((((("), Some(3));
+        assert_eq!(floor("((("), 3);
+        assert_eq!(floor("(()(()("), 3);
+        assert_eq!(floor("))((((("), 3);
     }
 
     #[test]
     fn floor_minus_1() {
-        assert_eq!(floor("())"), Some(-1));
-        assert_eq!(floor("))("), Some(-1));
+        assert_eq!(floor("())"), -1);
+        assert_eq!(floor("))("), -1);
     }
 
     #[test]
     fn floor_minus_3() {
-        assert_eq!(floor(")))"), Some(-3));
-        assert_eq!(floor(")())())"), Some(-3));
+        assert_eq!(floor(")))"), -3);
+        assert_eq!(floor(")())())"), -3);
     }
 
     #[test]
