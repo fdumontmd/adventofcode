@@ -9,8 +9,8 @@ fn follow_if_needed(h: (i32, i32), mut t: (i32, i32)) -> (i32, i32) {
     let delta_y = h.1 - t.1;
 
     if delta_x.abs() > 1 || delta_y.abs() > 1 {
-        t.0 += delta_x.clamp(-1, 1);
-        t.1 += delta_y.clamp(-1, 1);
+        t.0 += delta_x.signum();
+        t.1 += delta_y.signum();
     }
     t
 }
