@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Error, Result};
+use color_eyre::{eyre::bail, Report, Result};
 use itertools::Itertools;
 use std::{cmp::Reverse, collections::VecDeque, num::ParseIntError};
 
@@ -23,17 +23,17 @@ impl Operation {
 }
 
 impl TryFrom<&str> for Operation {
-    type Error = Error;
+    type Error = Report;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         if value == "old * old" {
             Ok(Operation::Square)
         } else if let Some(number) = value.strip_prefix("old * ") {
-            number.parse().map(Operation::MultBy).map_err(|e| e.into())
+            number.parse().map(Operation::MultBy).map_err(From::from)
         } else if let Some(number) = value.strip_prefix("old + ") {
-            number.parse().map(Operation::Add).map_err(|e| e.into())
+            number.parse().map(Operation::Add).map_err(From::from)
         } else {
-            Err(anyhow!("Cannot parse Operation {}", value))
+            bail!("Cannot parse Operation {}", value);
         }
     }
 }
@@ -52,7 +52,7 @@ struct Monkey {
 
 // not learning Nom for this
 impl TryFrom<&str> for Monkey {
-    type Error = Error;
+    type Error = Report;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let lines: Vec<_> = value.lines().collect();
@@ -79,8 +79,8 @@ impl TryFrom<&str> for Monkey {
         let items = match lines[1].trim().strip_prefix("Starting items: ") {
             Some(items) => items
                 .split(", ")
-                .map(|i| i.parse().map_err(|e: ParseIntError| e.into()))
-                .collect::<Result<VecDeque<Item>>>()?,
+                .map(|i| i.parse().map_err(From::from))
+                .collect::<Result<_>>()?,
             None => bail!("Cannot parse starting items: {}", lines[1]),
         };
 
@@ -192,14 +192,14 @@ impl Monkeys {
 }
 
 impl TryFrom<&str> for Monkeys {
-    type Error = Error;
+    type Error = Report;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let value = value.replace("\r\n", "\n");
         let mut monkeys: Vec<Monkey> = value
             .split("\n\n")
             .map(Monkey::try_from)
-            .collect::<Result<Vec<Monkey>>>()?;
+            .collect::<Result<_>>()?;
         monkeys.sort_by_key(|m| m.id);
         let cm = monkeys.iter().map(|m| m.divisibility_test).product();
         Ok(Monkeys { monkeys, cm })
