@@ -2,20 +2,26 @@ use std::cmp::Ordering;
 
 static INPUT: &str = include_str!("input.txt");
 
-#[derive(Clone, Debug, Ord, Eq)]
+#[derive(Clone, Debug, Eq)]
 pub enum Item {
     List(Vec<Item>),
     Int(i32),
 }
 
-impl PartialOrd for Item {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+impl Ord for Item {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self, other) {
-            (Item::Int(si), Item::Int(oi)) => si.partial_cmp(oi),
-            (Item::Int(si), other) => Item::List(vec![Item::Int(*si)]).partial_cmp(other),
-            (_, Item::Int(oi)) => self.partial_cmp(&Item::List(vec![Item::Int(*oi)])),
+            (Item::Int(si), Item::Int(oi)) => si.cmp(oi),
+            (Item::Int(si), other) => Item::List(vec![Item::Int(*si)]).cmp(other),
+            (_, Item::Int(oi)) => self.cmp(&Item::List(vec![Item::Int(*oi)])),
             (Item::List(sv), Item::List(ov)) => cmp_list(sv, ov),
         }
+    }
+}
+
+impl PartialOrd for Item {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -25,7 +31,7 @@ impl PartialEq for Item {
     }
 }
 
-fn cmp_list(sv: &[Item], ov: &[Item]) -> Option<std::cmp::Ordering> {
+fn cmp_list(sv: &[Item], ov: &[Item]) -> std::cmp::Ordering {
     let len = sv.len().min(ov.len());
 
     for (si, oi) in sv[..len].iter().zip(ov[..len].iter()) {
@@ -33,12 +39,12 @@ fn cmp_list(sv: &[Item], ov: &[Item]) -> Option<std::cmp::Ordering> {
             if cmp == Ordering::Equal {
                 continue;
             } else {
-                return Some(cmp);
+                return cmp;
             }
         }
     }
 
-    sv.len().partial_cmp(&ov.len())
+    sv.len().cmp(&ov.len())
 }
 
 mod parser {
@@ -52,7 +58,6 @@ mod parser {
 
     use crate::Item;
 
-    // TODO: read fasterthanlime article about nice error report
     pub fn parse_input(input: &str) -> Vec<(Item, Item)> {
         parse_input_err(input).unwrap().1
     }
