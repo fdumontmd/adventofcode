@@ -74,9 +74,3 @@ impl UnionFind {
         g
     }
 }
-
-impl Default for UnionFind {
-    fn default() -> Self {
-        Self::new()
-    }
-}
