@@ -16,8 +16,6 @@ struct Shape {
 }
 
 impl Shape {
-    // bug: is_blocked can be down, but also left or right
-    // meaning we need to keep track of not just heights but also blocks
     fn is_blocked(&self, pos: (usize, usize), blocks: &HashSet<(usize, usize)>) -> bool {
         for block in &self.shape {
             let block = (block.0 + pos.0, pos.1 - block.1);
