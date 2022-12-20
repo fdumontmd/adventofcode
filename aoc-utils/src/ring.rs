@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+#[derive(Debug)]
 pub struct Ring<T>(VecDeque<T>);
 
 impl<T> Ring<T> {
@@ -35,8 +36,25 @@ impl<T> Ring<T> {
         }
     }
 
+    pub fn move_signed(&mut self, steps: isize) {
+        let steps = steps % self.len() as isize;
+        if steps < 0 {
+            self.move_left(steps.abs() as usize);
+        } else {
+            self.move_right(steps as usize);
+        }
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.0.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn into_inner(self) -> VecDeque<T> {
+        self.0
     }
 }
 
