@@ -17,3 +17,5 @@ pub fn get_input() -> BufReader<File> {
 pub mod permutations;
 pub mod ring;
 pub mod union_find;
+
+pub mod num;
