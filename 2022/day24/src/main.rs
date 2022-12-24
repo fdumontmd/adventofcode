@@ -6,9 +6,9 @@ use std::{
 
 static INPUT: &str = include_str!("input.txt");
 
-// build a map of the valley with each blizard starting point and their
+// build a map of the valley with each blizzard starting point and their
 // orientation
-// then it is easy to compute the position of all blizards at all future
+// then it is easy to compute the position of all blizzards at all future
 // time by using % width or height of the valley
 // from there, do a BFS with a priority queue optimized for distance to
 // exit
@@ -21,27 +21,27 @@ enum Direction {
     Right,
 }
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
-struct Blizard {
+struct Blizzard {
     pos: (usize, usize),
     direction: Direction,
 }
 
-impl Blizard {
+impl Blizzard {
     fn try_new(start: (usize, usize), b: u8) -> Option<Self> {
         match b {
-            b'^' => Some(Blizard {
+            b'^' => Some(Blizzard {
                 pos: start,
                 direction: Direction::Up,
             }),
-            b'v' => Some(Blizard {
+            b'v' => Some(Blizzard {
                 pos: start,
                 direction: Direction::Down,
             }),
-            b'<' => Some(Blizard {
+            b'<' => Some(Blizzard {
                 pos: start,
                 direction: Direction::Left,
             }),
-            b'>' => Some(Blizard {
+            b'>' => Some(Blizzard {
                 pos: start,
                 direction: Direction::Right,
             }),
@@ -70,8 +70,8 @@ impl Blizard {
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 struct Valley {
-    blizards: Vec<Blizard>,
-    blizard_pos: BTreeSet<(usize, usize)>,
+    blizzards: Vec<Blizzard>,
+    blizzard_pos: BTreeSet<(usize, usize)>,
     walls: BTreeSet<(usize, usize)>,
     // inner widht and height
     width: usize,
@@ -82,12 +82,12 @@ struct Valley {
 
 impl Display for Valley {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut blizard_count: BTreeMap<(usize, usize), usize> = BTreeMap::new();
-        for b in &self.blizards {
-            *blizard_count.entry(b.pos).or_default() += 1;
+        let mut blizzard_count: BTreeMap<(usize, usize), usize> = BTreeMap::new();
+        for b in &self.blizzards {
+            *blizzard_count.entry(b.pos).or_default() += 1;
         }
-        let blizards: BTreeMap<(usize, usize), char> =
-            BTreeMap::from_iter(self.blizards.iter().map(|b| (b.pos, b.as_char())));
+        let blizzards: BTreeMap<(usize, usize), char> =
+            BTreeMap::from_iter(self.blizzards.iter().map(|b| (b.pos, b.as_char())));
 
         for row in 0..self.height + 2 {
             for col in 0..self.width + 2 {
@@ -95,8 +95,8 @@ impl Display for Valley {
                     write!(f, "E")?;
                 } else if self.walls.contains(&(col, row)) {
                     write!(f, "#")?;
-                } else if let Some(b) = blizards.get(&(col, row)) {
-                    let Some(c) = blizard_count.get(&(col, row)) else { panic!("blizard not counted?")};
+                } else if let Some(b) = blizzards.get(&(col, row)) {
+                    let Some(c) = blizzard_count.get(&(col, row)) else { panic!("blizzard not counted?")};
                     if *c == 1 {
                         write!(f, "{}", b)?;
                     } else {
@@ -130,24 +130,25 @@ impl Valley {
                     })
                 })
                 .collect();
-        let blizards: Vec<Blizard> = input
+        let mut blizzards: Vec<Blizzard> = input
             .lines()
             .filter(|l| !l.trim().is_empty())
             .enumerate()
             .flat_map(|(row, l)| {
                 l.bytes()
                     .enumerate()
-                    .filter_map(move |(col, b)| Blizard::try_new((col, row), b))
+                    .filter_map(move |(col, b)| Blizzard::try_new((col, row), b))
             })
             .collect();
+        blizzards.sort();
 
         let width = walls.last().unwrap().0 - 1;
         let height = walls.last().unwrap().1 - 1;
-        let blizard_pos = BTreeSet::from_iter(blizards.iter().map(|b| b.pos));
+        let blizzard_pos = BTreeSet::from_iter(blizzards.iter().map(|b| b.pos));
 
         Self {
-            blizards,
-            blizard_pos,
+            blizzards,
+            blizzard_pos,
             walls,
             height,
             width,
@@ -158,10 +159,10 @@ impl Valley {
     // almost there. need some modulo arithmetic that can handle this more robustly
     fn at_time(&self, minute: usize) -> Self {
         let minute = minute as isize;
-        let blizards: Vec<Blizard> = self
-            .blizards
+        let mut blizzards: Vec<Blizzard> = self
+            .blizzards
             .iter()
-            .map(|b| Blizard {
+            .map(|b| Blizzard {
                 pos: (
                     add_signed_modulo(b.pos.0 - 1, minute * b.delta().0, self.width) + 1,
                     add_signed_modulo(b.pos.1 - 1, minute * b.delta().1, self.height) + 1,
@@ -169,20 +170,20 @@ impl Valley {
                 ..*b
             })
             .collect();
-        let blizard_pos = BTreeSet::from_iter(blizards.iter().map(|b| b.pos));
-        let r = Self {
-            blizards,
-            blizard_pos,
+        blizzards.sort();
+        let blizzard_pos = BTreeSet::from_iter(blizzards.iter().map(|b| b.pos));
+        Self {
+            blizzards,
+            blizzard_pos,
             ..self.clone()
-        };
-        r
+        }
     }
 
     fn is_wall(&self, pos: (usize, usize)) -> bool {
         self.walls.contains(&pos)
     }
     fn is_blizzard(&self, pos: (usize, usize)) -> bool {
-        self.blizard_pos.contains(&pos)
+        self.blizzard_pos.contains(&pos)
     }
 }
 
@@ -209,12 +210,7 @@ impl SearchState {
         }
     }
 
-    fn next_state(
-        &self,
-        delta: (isize, isize),
-        target: (usize, usize),
-        valley: &Valley,
-    ) -> Option<Self> {
+    fn next_state(&self, delta: (isize, isize), valley: &Valley) -> Option<Self> {
         let new_pos = (
             self.pos.0.checked_add_signed(delta.0),
             self.pos.1.checked_add_signed(delta.1),
@@ -252,10 +248,10 @@ fn search_exit(valley: &Valley, start_pos: (usize, usize), end_pos: (usize, usiz
         while valleys.len() <= state.minute.0 + 1 {
             valleys.push(valley.at_time(valleys.len()));
         }
-        if seen.contains(&(state.pos, valleys[state.minute.0].blizards.clone())) {
+        if seen.contains(&(state.pos, valleys[state.minute.0].blizzards.clone())) {
             continue;
         }
-        seen.insert((state.pos, valleys[state.minute.0].blizards.clone()));
+        seen.insert((state.pos, valleys[state.minute.0].blizzards.clone()));
         if state.pos == end_pos {
             return state.minute.0;
         }
@@ -265,9 +261,9 @@ fn search_exit(valley: &Valley, start_pos: (usize, usize), end_pos: (usize, usiz
                 .into_iter()
                 .flat_map(|d| {
                     state
-                        .next_state(d, end_pos, &valleys[state.minute.0 + 1])
+                        .next_state(d, &valleys[state.minute.0 + 1])
                         .filter(|s| {
-                            !seen.contains(&(state.pos, valleys[s.minute.0].blizards.clone()))
+                            !seen.contains(&(state.pos, valleys[s.minute.0].blizzards.clone()))
                         })
                 }),
         );
