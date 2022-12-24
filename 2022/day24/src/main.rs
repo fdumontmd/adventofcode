@@ -242,16 +242,22 @@ fn search_exit(valley: &Valley, start_pos: (usize, usize), end_pos: (usize, usiz
     let mut queue = BinaryHeap::new();
     queue.push(init);
     let mut valleys = vec![valley.at_time(0)];
+
+    let mut seen_time = 0;
     let mut seen = BTreeSet::new();
 
     while let Some(state) = queue.pop() {
+        if seen_time != state.minute.0 {
+            seen.clear();
+        }
+        seen_time = state.minute.0;
         while valleys.len() <= state.minute.0 + 1 {
             valleys.push(valley.at_time(valleys.len()));
         }
-        if seen.contains(&(state.pos, valleys[state.minute.0].blizzards.clone())) {
+        if seen.contains(&state.pos) {
             continue;
         }
-        seen.insert((state.pos, valleys[state.minute.0].blizzards.clone()));
+        seen.insert(state.pos);
         if state.pos == end_pos {
             return state.minute.0;
         }
@@ -259,13 +265,7 @@ fn search_exit(valley: &Valley, start_pos: (usize, usize), end_pos: (usize, usiz
         queue.extend(
             [(1, 0), (0, 1), (-1, 0), (0, -1), (0, 0)]
                 .into_iter()
-                .flat_map(|d| {
-                    state
-                        .next_state(d, &valleys[state.minute.0 + 1])
-                        .filter(|s| {
-                            !seen.contains(&(state.pos, valleys[s.minute.0].blizzards.clone()))
-                        })
-                }),
+                .flat_map(|d| state.next_state(d, &valleys[state.minute.0 + 1])),
         );
     }
 
