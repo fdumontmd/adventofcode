@@ -18,6 +18,10 @@ fn snafu_to_decimal(input: &str) -> isize {
 fn decimal_to_snafu(mut input: isize) -> String {
     let mut digits: Vec<char> = Vec::new();
 
+    if input == 0 {
+        return "0".to_string();
+    }
+
     while input != 0 {
         let mut digit = input % 5;
         input /= 5;
@@ -74,6 +78,7 @@ mod test {
 122
 ";
 
+    #[test_case(0, "0")]
     #[test_case(1, "1")]
     #[test_case(2, "2")]
     #[test_case(3, "1=")]
@@ -93,6 +98,7 @@ mod test {
         assert_eq!(snafu_to_decimal(snafu), decimal);
     }
 
+    #[test_case(0, "0")]
     #[test_case(1, "1")]
     #[test_case(2, "2")]
     #[test_case(3, "1=")]
