@@ -21,11 +21,11 @@ impl<'a> Iterator for FloorIterator<'a> {
 
     fn next(&mut self) -> Option<i64> {
         if let Some(c) = self.c.next() {
-            if c == '(' {
-                self.floor += 1;
-            } else if c == ')' {
-                self.floor -= 1;
-            }
+            self.floor += match c {
+                '(' => 1,
+                ')' => -1,
+                _ => 0,
+            };
             Some(self.floor)
         } else {
             None
