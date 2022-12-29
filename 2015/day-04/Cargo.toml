@@ -4,4 +4,6 @@ version = "0.1.0"
 authors = ["Frederic Dumont <fdumontmd@gmail.com>"]
 
 [dependencies]
-rust-crypto = "^0.2"
+hex = "0.4.3"
+hex-literal = "0.3.4"
+md-5 = "0.10.1"

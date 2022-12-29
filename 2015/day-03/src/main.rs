@@ -1,5 +1,6 @@
-use std::io::Read;
 use std::str::Chars;
+
+static INPUT: &str = include_str!("input.txt");
 
 struct DeliveryIter<'a> {
     c: Chars<'a>,
@@ -51,30 +52,27 @@ impl<'a> Iterator for DeliveryIter<'a> {
 
 
 fn main() {
-    let mut input = String::new();
-    std::io::stdin().read_to_string(&mut input);
-
-    let mut v: Vec<(i64, i64)> = DeliveryIter::new(&input.trim()).collect();
+    let mut v: Vec<(i64, i64)> = DeliveryIter::new(INPUT.trim()).collect();
 
     v.sort();
     v.dedup();
     println!("Houses visited by single Santa: {}", v.len());
 
     let mut santa = String::new();
-    let mut roboSanta = String::new();
+    let mut robo_santa = String::new();
 
     {
         let s1 = &mut santa;
-        let s2 = &mut roboSanta;
+        let s2 = &mut robo_santa;
 
-        for c in input.trim().chars() {
+        for c in INPUT.trim().chars() {
             s1.push(c);
             std::mem::swap(s1, s2);
         }
     }
 
     let mut v1: Vec<(i64, i64)> = DeliveryIter::new(&santa).collect();
-    let mut v2: Vec<(i64, i64)> = DeliveryIter::new(&roboSanta).collect();
+    let mut v2: Vec<(i64, i64)> = DeliveryIter::new(&robo_santa).collect();
 
     v1.append(&mut v2);
 

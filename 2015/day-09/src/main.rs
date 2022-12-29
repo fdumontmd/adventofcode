@@ -76,9 +76,9 @@ fn main() {
     let re = Regex::new(r"(\w+) to (\w+) = (\d+)").unwrap();
     for line in buffer.lines() {
         if let Some(caps) = re.captures(line) {
-            let from = caps.at(1).unwrap();
-            let to = caps.at(2).unwrap();
-            let dist = usize::from_str(caps.at(3).unwrap()).unwrap();
+            let from = caps.get(1).unwrap().as_str();
+            let to = caps.get(2).unwrap().as_str();
+            let dist = usize::from_str(caps.get(3).unwrap().as_str()).unwrap();
             distance_map.push(from, to, dist);
         }
     }

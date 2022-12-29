@@ -1,42 +1,40 @@
 extern crate regex;
-extern crate rustc_serialize;
+extern crate serde_json;
 
 use std::io::{self, Read};
 use std::str::FromStr;
 
 use regex::Regex;
-use rustc_serialize::json::{Array, Object, Json};
+use serde_json::{Map, Value, from_str};
 
-fn compute_sum_array(a: &Array) -> i64 {
+fn compute_sum_array(a: &Vec<Value>) -> i64 {
     a.iter().map(|j| compute_sum(j)).sum()
 }
 
-fn compute_sum_object(o: &Object) -> i64 {
+fn compute_sum_object(o: &Map<String, Value>) -> i64 {
     let mut sum = 0;
     for (_, v) in o {
         sum += match v {
-            &Json::String(ref s) => {
+            Value::String(s) => {
                 if s == "red" {
                     return 0;
                 }
                 0
             }
-            _ => compute_sum(&v)
+            _ => compute_sum(v)
         }
     }
     sum
 }
 
-fn compute_sum(data: &Json) -> i64 {
-    match *data {
-        Json::I64(i) => i,
-        Json::U64(u) => u as i64,
-        Json::F64(_) => unreachable!(),
-        Json::Boolean(_) => 0,
-        Json::String(_) => 0,
-        Json::Array(ref a) => compute_sum_array(a),
-        Json::Object(ref o) => compute_sum_object(o),
-        Json::Null => 0,
+fn compute_sum(data: &Value) -> i64 {
+    match data {
+        Value::Number(i) => i.as_i64().unwrap_or_else(|| i.as_u64().unwrap() as i64),
+        Value::Bool(_) => 0,
+        Value::String(_) => 0,
+        Value::Array(ref a) => compute_sum_array(a),
+        Value::Object(ref o) => compute_sum_object(o),
+        Value::Null => 0,
     }
 }
 
@@ -49,12 +47,12 @@ fn main() {
     let re = Regex::new(r"(-?\d+)").unwrap();
     let mut sum = 0;
     for caps in re.captures_iter(&buffer) {
-        sum += i64::from_str(caps.at(1).unwrap()).unwrap();
+        sum += i64::from_str(caps.get(1).unwrap().as_str()).unwrap();
     }
 
     println!("total: {}", sum);
 
-    let data = Json::from_str(&buffer).unwrap();
+    let data = from_str(&buffer).unwrap();
     sum = compute_sum(&data);
 
     println!("total (not red): {}", sum);

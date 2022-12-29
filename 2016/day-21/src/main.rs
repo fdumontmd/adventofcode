@@ -123,46 +123,46 @@ fn main() {
 
     for line in buffer.lines() {
         if let Some(ref caps) = swap.captures(&line) {
-            let l1 = if "position" == caps.at(1).unwrap() {
-                let pos = usize::from_str(caps.at(2).unwrap()).unwrap();
+            let l1 = if "position" == caps.get(1).unwrap().as_str() {
+                let pos = usize::from_str(caps.get(2).unwrap().as_str()).unwrap();
                 Location::Index(pos)
-            } else if "letter" == caps.at(1).unwrap() {
-                Location::Letter(caps.at(2).unwrap().as_bytes()[0])
+            } else if "letter" == caps.get(1).unwrap().as_str() {
+                Location::Letter(caps.get(2).unwrap().as_str().as_bytes()[0])
             } else {
                 println!("Cannot parse {}", line);
                 panic!()
             };
-            let l2 = if "position" == caps.at(3).unwrap() {
-                let pos = usize::from_str(caps.at(4).unwrap()).unwrap();
+            let l2 = if "position" == caps.get(3).unwrap().as_str() {
+                let pos = usize::from_str(caps.get(4).unwrap().as_str()).unwrap();
                 Location::Index(pos)
-            } else if "letter" == caps.at(3).unwrap() {
-                Location::Letter(caps.at(4).unwrap().as_bytes()[0])
+            } else if "letter" == caps.get(3).unwrap().as_str() {
+                Location::Letter(caps.get(4).unwrap().as_str().as_bytes()[0])
             } else {
                 println!("Cannot parse {}", line);
                 panic!()
             };
             commands.push(Command::Swap(l1, l2));
         } else if let Some(ref caps) = rotate.captures(&line) {
-            let d = if "left" == caps.at(1).unwrap() {
+            let d = if "left" == caps.get(1).unwrap().as_str() {
                 Direction::Left
-            } else if "right" == caps.at(1).unwrap() {
+            } else if "right" == caps.get(1).unwrap().as_str() {
                 Direction::Right
             } else {
                 println!("Cannot parse {}", line);
                 panic!()
             };
-            let steps = usize::from_str(caps.at(2).unwrap()).unwrap();
+            let steps = usize::from_str(caps.get(2).unwrap().as_str()).unwrap();
             commands.push(Command::Rotate(d, steps));
         } else if let Some(ref caps) = rotate_based_on.captures(&line) {
-            let l = caps.at(1).unwrap().as_bytes()[0];
+            let l = caps.get(1).unwrap().as_str().as_bytes()[0];
             commands.push(Command::RotateBasedOn(Location::Letter(l)));
         } else if let Some(ref caps) = reverse.captures(&line) {
-            let pos1 = usize::from_str(caps.at(1).unwrap()).unwrap();
-            let pos2 = usize::from_str(caps.at(2).unwrap()).unwrap();
+            let pos1 = usize::from_str(caps.get(1).unwrap().as_str()).unwrap();
+            let pos2 = usize::from_str(caps.get(2).unwrap().as_str()).unwrap();
             commands.push(Command::Reverse(Location::Index(pos1), Location::Index(pos2)))
         } else if let Some(ref caps) = move_c.captures(&line) {
-            let pos1 = usize::from_str(caps.at(1).unwrap()).unwrap();
-            let pos2 = usize::from_str(caps.at(2).unwrap()).unwrap();
+            let pos1 = usize::from_str(caps.get(1).unwrap().as_str()).unwrap();
+            let pos2 = usize::from_str(caps.get(2).unwrap().as_str()).unwrap();
             commands.push(Command::Move(Location::Index(pos1), Location::Index(pos2)));
         } else {
             println!("Cannot parse {}", line);

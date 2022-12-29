@@ -466,7 +466,7 @@ impl PlanProposal {
 }
 
 fn main_1() {
-    env_logger::init().unwrap();
+    env_logger::init();
 
     let mut bp: Vec<fn () -> Box<Spell>> = Vec::new();
     bp.push(Shield::generate);
@@ -487,7 +487,7 @@ fn main_1() {
 }
 
 fn main() {
-    env_logger::init().unwrap();
+    env_logger::init();
 
     let mut ps = PlanSearch::new();
 

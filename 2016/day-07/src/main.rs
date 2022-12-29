@@ -72,14 +72,14 @@ fn is_abba(component: Option<&str>) -> bool {
 }
 
 lazy_static! {
-    static ref RE: Regex = Regex::new(r"([:alpha:]*)(\[[:alpha:]*\])?").unwrap();
+    static ref RE: Regex = Regex::new(r"([[:alpha:]]*)(\[[[:alpha:]]*\])?").unwrap();
 }
 
 fn is_tsl(address: &str) -> bool {
     let mut tsl = false;
     for caps in RE.captures_iter(address) {
-        tsl |= is_abba(caps.at(1));
-        if is_abba(caps.at(2)) {
+        tsl |= is_abba(caps.get(1).map(|m| m.as_str()));
+        if is_abba(caps.get(2).map(|m| m.as_str())) {
             return false;
         }
     }
@@ -173,10 +173,10 @@ fn is_ssl(address: &str) -> bool {
     let mut hyperseqs = Vec::new();
 
     for caps in RE.captures_iter(address) {
-        if let Some(seq) = caps.at(1) {
+        if let Some(seq) = caps.get(1).map(|m| m.as_str()) {
             babs.extend(ABAParser::iter(seq));
         }
-        if let Some(hyperseq) = caps.at(2) {
+        if let Some(hyperseq) = caps.get(2).map(|m| m.as_str()) {
             hyperseqs.push(hyperseq)
         }
     }
