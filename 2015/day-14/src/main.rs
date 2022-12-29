@@ -47,10 +47,10 @@ fn main() {
 
     for line in buffer.lines() {
         if let Some(ref caps) = re.captures(&line) {
-            let reindeer = String::from(caps.at(1).unwrap());
-            let speed = u64::from_str(caps.at(2).unwrap()).unwrap();
-            let duration = u64::from_str(caps.at(3).unwrap()).unwrap();
-            let rest = u64::from_str(caps.at(4).unwrap()).unwrap();
+            let reindeer = String::from(caps.get(1).unwrap().as_str());
+            let speed = u64::from_str(caps.get(2).unwrap().as_str()).unwrap();
+            let duration = u64::from_str(caps.get(3).unwrap().as_str()).unwrap();
+            let rest = u64::from_str(caps.get(4).unwrap().as_str()).unwrap();
 
             reindeers.push((reindeer, Reindeer::new(speed, duration, rest)));
         } else {

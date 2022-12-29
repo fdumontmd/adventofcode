@@ -2,3 +2,4 @@
 name = "day-01"
 version = "0.1.0"
 authors = ["Frederic Dumont <fdumontmd@gmail.com>"]
+edition = "2021"

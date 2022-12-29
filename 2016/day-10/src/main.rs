@@ -152,11 +152,11 @@ impl Factory {
 
         for command in commands.lines() {
             if let Some(caps) = BOT.captures(command) {
-                let bot_id = Id::from_str(caps.at(1).unwrap()).unwrap();
-                let low_dest = caps.at(2).unwrap();
-                let low_id = Id::from_str(caps.at(3).unwrap()).unwrap();
-                let high_dest = caps.at(4).unwrap();
-                let high_id = Id::from_str(caps.at(5).unwrap()).unwrap();
+                let bot_id = Id::from_str(caps.get(1).unwrap().as_str()).unwrap();
+                let low_dest = caps.get(2).unwrap().as_str();
+                let low_id = Id::from_str(caps.get(3).unwrap().as_str()).unwrap();
+                let high_dest = caps.get(4).unwrap().as_str();
+                let high_id = Id::from_str(caps.get(5).unwrap().as_str()).unwrap();
 
                 factory.bots.insert(bot_id,
                                     Bot::new(bot_id, Program::new(
@@ -164,8 +164,8 @@ impl Factory {
                                         high_dest, high_id
                                     )));
             } else if let Some(caps) = ACTION.captures(command) {
-                let chip = Chip::from_str(caps.at(1).unwrap()).unwrap();
-                let bot = Id::from_str(caps.at(2).unwrap()).unwrap();
+                let chip = Chip::from_str(caps.get(1).unwrap().as_str()).unwrap();
+                let bot = Id::from_str(caps.get(2).unwrap().as_str()).unwrap();
                 actions.push(Action::new(chip, Destination::bot(bot)));
             } else {
                 unreachable!();

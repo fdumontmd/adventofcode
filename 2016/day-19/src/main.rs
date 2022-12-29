@@ -10,7 +10,7 @@ fn josephus(n: u64) -> u64 {
 }
 
 fn across_slow(n: u64) -> u64 {
-    let mut elves = BTreeSet::from_iter(1..n+1);
+    let mut elves = BTreeSet::from_iter(1..n + 1);
 
     let mut current = 0;
     loop {
@@ -41,10 +41,10 @@ fn across_slow(n: u64) -> u64 {
 // because if L was the number of remaining elves, the across would be L / 2 + P
 // but L is the number of elves, so we need to substract those that were removed (i.e. L -R)
 // also, those that were removed are between P and across (because there were across elves with position
-// less than P), so we add R ti compensate.
+// less than P), so we add R to compensate.
 // We break when we are about to go beyond the end of the vector, to avoid handling weird corner cases
 fn across(n: u64) -> u64 {
-    let mut elves = Vec::from_iter(1..n+1);
+    let mut elves = Vec::from_iter(1..n + 1);
 
     loop {
         if elves.len() == 1 {
@@ -54,9 +54,9 @@ fn across(n: u64) -> u64 {
         let mut removed = 0;
 
         let len = elves.len();
-        let mut breakoff = len/2;
+        let mut breakoff = len / 2;
 
-        for pos in 0..len/2 {
+        for pos in 0..len / 2 {
             let across = (len - removed) / 2 + pos + removed;
             if across >= len {
                 breakoff = pos;
@@ -83,6 +83,9 @@ fn main() {
 
 #[test]
 fn test() {
+    assert_eq!(3, josephus(5));
+    assert_eq!(1830117, josephus(3012210));
     assert_eq!(2, across(5));
     assert_eq!(1, across(10));
+    assert_eq!(1417887, across(3012210));
 }

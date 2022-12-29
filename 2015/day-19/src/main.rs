@@ -98,7 +98,7 @@ fn main() {
 
     for line in buffer.lines() {
         if let Some(ref caps) = re.captures(line) {
-            replacements.entry(caps.at(1).unwrap()).or_insert(Vec::new()).push(caps.at(2).unwrap());
+            replacements.entry(caps.get(1).unwrap().as_str()).or_insert(Vec::new()).push(caps.get(2).unwrap().as_str());
         } else {
             if !line.is_empty() {
                 let molecule = line.trim();

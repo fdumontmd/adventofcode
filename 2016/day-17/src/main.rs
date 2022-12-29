@@ -1,10 +1,11 @@
-extern crate crypto;
+extern crate md5;
+extern crate hex;
 
 use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 
-use crypto::md5::Md5;
-use crypto::digest::Digest;
+use md5::{Md5, Digest};
+use hex::encode;
 
 #[derive(Copy, Clone)]
 enum Direction {
@@ -47,7 +48,7 @@ impl Direction {
 
 fn is_open(c: char) -> bool {
     match c {
-        'b'...'f' => true,
+        'b'..='f' => true,
         _ => false,
     }
 }
@@ -106,10 +107,10 @@ impl State {
             return Vec::new();
         }
         let mut md5 = Md5::new();
-        md5.input_str(key);
-        md5.input_str(&self.path);
+        md5.update(key.as_bytes());
+        md5.update(&self.path.as_bytes());
 
-        Direction::from_hash(&md5.result_str()).into_iter()
+        Direction::from_hash(&encode(md5.finalize())).into_iter()
             .filter(|d| self.location.is_valid_direction(*d))
             .map(|d| self.move_to(d))
             .collect()

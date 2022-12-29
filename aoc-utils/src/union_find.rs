@@ -23,14 +23,19 @@ impl UnionFind {
     pub fn ensure_capacity(&mut self, i: usize) {
         if i >= self.leaders.len() {
             let len = self.leaders.len();
-            self.leaders.extend(len..i+1);
-            self.heights.extend((len..i+1).map(|_| 1));
+            self.leaders.extend(len..i + 1);
+            self.heights.extend((len..i + 1).map(|_| 1));
         }
         assert!(self.leaders.len() > i && self.heights.len() > i);
     }
 
     pub fn len(&self) -> usize {
         self.leaders.len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn join(&mut self, i: usize, j: usize) {
@@ -57,7 +62,9 @@ impl UnionFind {
     pub fn same_group(&self, i: usize) -> Vec<usize> {
         let l = self.leader(i);
 
-        (0..self.leaders.len()).filter(|&j| self.leader(j) == l).collect()
+        (0..self.leaders.len())
+            .filter(|&j| self.leader(j) == l)
+            .collect()
     }
 
     pub fn groups(&self) -> Vec<usize> {

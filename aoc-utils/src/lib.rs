@@ -3,7 +3,9 @@ pub use std::io::{BufRead, BufReader};
 
 // should use Path and AsRef(Path) for everything
 pub fn get_input_path() -> String {
-    std::env::args().nth(1).unwrap_or("input.txt".to_owned())
+    std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "input.txt".to_owned())
 }
 
 pub fn get_input() -> BufReader<File> {
@@ -12,7 +14,8 @@ pub fn get_input() -> BufReader<File> {
     BufReader::new(input)
 }
 
-
-pub mod union_find;
-pub mod ring;
 pub mod permutations;
+pub mod ring;
+pub mod union_find;
+
+pub mod num;
