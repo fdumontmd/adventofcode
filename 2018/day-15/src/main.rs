@@ -5,6 +5,11 @@ use std::{
     str::FromStr,
 };
 
+// refactor:
+// keep unit type into its own enum; then simplify to tile:Unit(UnitType, i32) to simplify hit and
+// hitpoints calculations
+// attack power a bit adhoc; take a function from unittype to attack power?
+
 static INPUT: &str = include_str!("input.txt");
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -224,14 +229,14 @@ impl Map {
                     .flat_map(|t| self.adjacent_open_caverns(*t))
                     .collect();
                 // for each adjacent_open_caverns pos, compute the minimum number of steps required
-                // to reach a target or None is impossible
+                // to reach a target or None if impossible
                 // then, move to the adjacent pos that has the minimum number of steps to a target,
                 // using pos order to break ties
                 let mut dists: Vec<_> = self
                     .adjacent_open_caverns(p)
                     .filter_map(|aocp| {
                         // try and reach a target if possible
-                        let mut seen: HashSet<(usize, usize)> = HashSet::new();
+                        let mut seen = HashSet::new();
                         let mut boundary = HashSet::new();
                         boundary.insert(aocp);
                         let mut idx: usize = 0;
@@ -267,7 +272,7 @@ impl Map {
                 .adjacent_units(p)
                 .filter(|au| targets.contains(au))
                 .collect();
-            all_adjacent_units.sort_by_key(|au| (self[*au].hitpoints(), au.0, au.1));
+            all_adjacent_units.sort_by_key(|&au| (self[au].hitpoints(), au));
             if let Some(&au) = all_adjacent_units.get(0) {
                 let attack_power = if self[p].is_elf() {
                     self.elf_attack_power
