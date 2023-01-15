@@ -145,10 +145,14 @@ impl Map {
         })
     }
 
-    fn adjacent_open_caverns(
+    fn adjacent_positions_matching<F>(
         &self,
         pos: (usize, usize),
-    ) -> impl Iterator<Item = (usize, usize)> + '_ {
+        f: F,
+    ) -> impl Iterator<Item = (usize, usize)> + '_
+    where
+        F: Fn(Tile) -> bool + 'static,
+    {
         const DELTA: [(isize, isize); 4] = [(-1, 0), (0, -1), (0, 1), (1, 0)];
         // we have walls all around and pos will always be inside, so no need to care about getting
         // out of index
@@ -157,7 +161,7 @@ impl Map {
                 pos.0.checked_add_signed(d.0).unwrap(),
                 pos.1.checked_add_signed(d.1).unwrap(),
             );
-            if self[apos] == Tile::OpenCavern {
+            if f(self[apos]) {
                 Some(apos)
             } else {
                 None
@@ -165,21 +169,15 @@ impl Map {
         })
     }
 
+    fn adjacent_open_caverns(
+        &self,
+        pos: (usize, usize),
+    ) -> impl Iterator<Item = (usize, usize)> + '_ {
+        self.adjacent_positions_matching(pos, |t| t == Tile::OpenCavern)
+    }
+
     fn adjacent_units(&self, pos: (usize, usize)) -> impl Iterator<Item = (usize, usize)> + '_ {
-        const DELTA: [(isize, isize); 4] = [(-1, 0), (0, -1), (0, 1), (1, 0)];
-        // we have walls all around and pos will always be inside, so no need to care about getting
-        // out of index
-        DELTA.iter().filter_map(move |d| {
-            let apos = (
-                pos.0.checked_add_signed(d.0).unwrap(),
-                pos.1.checked_add_signed(d.1).unwrap(),
-            );
-            if self[apos].is_unit() {
-                Some(apos)
-            } else {
-                None
-            }
-        })
+        self.adjacent_positions_matching(pos, |t| t.is_unit())
     }
 
     fn has_any_elf(&self) -> bool {
