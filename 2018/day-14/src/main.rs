@@ -30,7 +30,12 @@ impl Scoreboard {
     }
 
     fn ends_with_target(&self) -> bool {
-        self.target.as_ref().map(|t| self.recipes.len() >= t.len() && *t == &self.recipes[self.recipes.len() - t.len()..]).unwrap_or(false)
+        self.target
+            .as_ref()
+            .map(|t| {
+                self.recipes.len() >= t.len() && *t == self.recipes[self.recipes.len() - t.len()..]
+            })
+            .unwrap_or(false)
     }
 
     fn step(&mut self) {
@@ -39,7 +44,11 @@ impl Scoreboard {
         let combi = current_1 + current_2;
         if combi > 9 {
             self.recipes.push(1);
-            if self.cutoff.map(|c| self.recipes.len() == c).unwrap_or(false) {
+            if self
+                .cutoff
+                .map(|c| self.recipes.len() == c)
+                .unwrap_or(false)
+            {
                 return;
             }
 
@@ -79,7 +88,10 @@ impl Scoreboard {
 
 fn main() {
     println!("part 1: {}", Scoreboard::new_with_cutoff(INPUT).last_10());
-    println!("part 2: {}", Scoreboard::new_with_target(&format!("{}", INPUT)).recipes_until_target());
+    println!(
+        "part 2: {}",
+        Scoreboard::new_with_target(&format!("{}", INPUT)).recipes_until_target()
+    );
 }
 
 #[cfg(test)]
@@ -107,21 +119,33 @@ mod test {
 
     #[test]
     fn test_until_51589() {
-        assert_eq!(Scoreboard::new_with_target("51589").recipes_until_target(), 9);
+        assert_eq!(
+            Scoreboard::new_with_target("51589").recipes_until_target(),
+            9
+        );
     }
 
     #[test]
     fn test_until_01245() {
-        assert_eq!(Scoreboard::new_with_target("01245").recipes_until_target(), 5);
+        assert_eq!(
+            Scoreboard::new_with_target("01245").recipes_until_target(),
+            5
+        );
     }
 
     #[test]
     fn test_until_92510() {
-        assert_eq!(Scoreboard::new_with_target("92510").recipes_until_target(), 18);
+        assert_eq!(
+            Scoreboard::new_with_target("92510").recipes_until_target(),
+            18
+        );
     }
 
     #[test]
     fn test_until_59414() {
-        assert_eq!(Scoreboard::new_with_target("59414").recipes_until_target(), 2018);
+        assert_eq!(
+            Scoreboard::new_with_target("59414").recipes_until_target(),
+            2018
+        );
     }
 }
