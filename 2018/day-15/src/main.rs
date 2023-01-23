@@ -251,14 +251,14 @@ impl Map {
                             boundary = boundary
                                 .into_iter()
                                 .flat_map(|p| self.adjacent_open_caverns(p))
-                                .filter(|p| !seen.contains(&p))
+                                .filter(|p| !seen.contains(p))
                                 .collect();
                             idx += 1;
                         }
                     })
                     .collect();
                 dists.sort(); // sort by dist then pos order
-                if let Some(&(_, np)) = dists.get(0) {
+                if let Some(&(_, np)) = dists.first() {
                     let unit = self[p];
                     self[p] = Tile::OpenCavern;
                     self[np] = unit;
@@ -271,7 +271,7 @@ impl Map {
                 .filter(|au| targets.contains(au))
                 .collect();
             all_adjacent_units.sort_by_key(|&au| (self[au].hitpoints(), au));
-            if let Some(&au) = all_adjacent_units.get(0) {
+            if let Some(&au) = all_adjacent_units.first() {
                 let attack_power = if self[p].is_elf() {
                     self.elf_attack_power
                 } else {
@@ -347,16 +347,30 @@ fn part_02(input: &str) -> anyhow::Result<usize> {
     for attack_power in 4.. {
         let mut map = map.clone();
         map.elf_attack_power = attack_power;
+
         if let Some(complete_rounds) = map.fight_for_elves() {
             return Ok(complete_rounds * map.total_hit_points());
         }
     }
-    anyhow::bail!("how did we get here?")
+    unreachable!()
+}
+
+// so apparently, more powerful elves might still fail to win somehow
+// so a "binary search" will not work as there's no definitive cutoff
+fn _part_02_alt(input: &str) -> anyhow::Result<()> {
+    let map = Map::from_str(input)?;
+    for attack_power in 4..30 {
+        let mut map = map.clone();
+        map.elf_attack_power = attack_power;
+        println!("{}: {}", attack_power, map.fight_for_elves().is_some());
+    }
+    Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
     println!("Part 1: {}", part_01(INPUT)?);
     println!("Part 2: {}", part_02(INPUT)?);
+    //part_02_alt(INPUT)?;
     Ok(())
 }
 
@@ -454,6 +468,7 @@ mod tests {
     #[test_case(TEST_INPUT_04, 3478, 15)]
     #[test_case(TEST_INPUT_05, 6474, 12)]
     #[test_case(TEST_INPUT_06, 1140, 34)]
+    #[test_case(INPUT, 90420, 17)]
     fn test_elf_attack_power_helps(input: &str, res: usize, attack_power: i32) {
         let mut map = Map::from_str(input).unwrap();
         let count_elves = map.elf_count();
