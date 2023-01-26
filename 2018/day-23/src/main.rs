@@ -1,3 +1,6 @@
+use std::{collections::BinaryHeap, cmp::Reverse};
+
+use itertools::{Itertools, MinMaxResult};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -109,10 +112,28 @@ fn _part_02_z3(input: &str) -> i64 {
     res
 }
 
-// this gives the correct answer for my input, but looks like correct "by accident"
-// the selection of a block of space with the most bots could fail if those bots
-// are disjoint are smaller range
-// z3 solution is correct by construction, AFAICT
+// previous algo was greedy, so there would always be configuration where the best
+// solution cannot be found because it is in a subspace that was discarded too early.
+
+// Correct solution: branch and bound on the subspaces. The "branch" will include
+// - number of nanobots in range (maximizing)
+// - distance to origin (minimizing)
+// - coordinate of subspace
+// - range of subspace
+//
+// - first space: use bot pos +- range to make sure all the points range of any bot
+//   are in the search
+//
+// outline:
+// - pop one "branch" from the priority queue
+//  - if range == 1, this is the solution. We can stop now
+//  - otherwise, divide range by 2, then create subspaces and push
+//    them in the queue
+//  - to create subspace, evaluate the number of nanobots in range by using the trick
+//    below to include range in the distance
+//  - for bounding: the only bound is 1... because the count of bots in range is an 
+//  overestimate,
+//    we just stop expanding subspaces with no bot in range
 fn part_02(input: &str) -> i64 {
     let nanobots: Vec<_> = input
         .lines()
@@ -120,62 +141,60 @@ fn part_02(input: &str) -> i64 {
         .map(Nanobot::from_str)
         .collect();
 
-    macro_rules! min_max {
-        ($x:expr) => {
-            (
-                nanobots.iter().map($x).min().unwrap(),
-                nanobots.iter().map($x).max().unwrap(),
-            )
-        };
+    fn dim_range<F: Fn(&Nanobot) -> i64>(n: &Nanobot, f: &F) -> impl Iterator<Item = i64> {
+        let coord = f(n);
+        [coord - n.range, coord + n.range].into_iter()
     }
 
-    let mut xs = min_max!(|a| a.position.0);
-    let mut ys = min_max!(|a| a.position.1);
-    let mut zs = min_max!(|a| a.position.2);
-
-    let mut range = 1;
-    while range < xs.1 - xs.0 || range < ys.1 - ys.0 || range < zs.1 - zs.0 {
-        range *= 2;
+    fn min_max<F: Fn(&Nanobot) -> i64>(n: &[Nanobot], f: &F) -> (i64, i64) {
+        let MinMaxResult::MinMax(min, max) = 
+        n.iter().flat_map(|n| dim_range(n, f))
+            .minmax() else { panic!("no bots?")};
+        (min, max)
     }
 
-    loop {
-        let mut target_count = 0;
-        let mut best = (0, 0, 0);
-        let mut best_val = 0;
+    let (min_xs, max_xs) = min_max(&nanobots, &|n| n.position.0);
+    let (min_ys, max_ys) = min_max(&nanobots, &|n| n.position.1);
+    let (min_zs, max_zs) = min_max(&nanobots, &|n| n.position.2);
 
-        for x in (xs.0..=xs.1).step_by(range as usize) {
-            for y in (ys.0..=ys.1).step_by(range as usize) {
-                for z in (zs.0..=zs.1).step_by(range as usize) {
-                    let count = nanobots
-                        .iter()
-                        .filter(|b| (distance((x, y, z), b.position) - b.range) / range <= 0)
-                        .count();
-                    if count > target_count {
-                        // square with higher count
-                        target_count = count;
-                        best_val = x.abs() + y.abs() + z.abs();
-                        best = (x, y, z);
-                    } else if count == target_count {
-                        // tie breaks, pick closest to origin
-                        if x.abs() + y.abs() + z.abs() < best_val {
-                            best_val = x.abs() + y.abs() + z.abs();
-                            best = (x, y, z);
-                        }
+    let range = (max_xs - min_xs + 1).max((max_ys - min_ys + 1).max(max_zs - min_zs + 1));
+
+    fn estimate_nanobots_in_range(bots: &[Nanobot], pos: Position, range: i64) -> usize {
+        bots.iter().filter(|n| (distance(pos, n.position) - n.range) / range <= 0).count()
+    }
+
+    fn make_search_state(bots: &[Nanobot], pos: Position, range: i64) -> (usize, Reverse<i64>, (i64, i64, i64), i64) {
+        let bots_in_range = estimate_nanobots_in_range(bots, pos, range);
+        let dist_to_origin = pos.0.abs() + pos.1.abs() + pos.2.abs();
+
+        (bots_in_range, Reverse(dist_to_origin), pos, range)
+    }
+
+    let mut queue = BinaryHeap::new();
+
+    queue.push(make_search_state(&nanobots, (min_xs, min_ys, min_zs), range));
+
+    while let Some((_, _, pos, range)) = queue.pop() {
+        if range == 1 {
+            return pos.0.abs() + pos.1.abs() + pos.2.abs();
+        }
+
+        let new_range = range/2;
+
+        // step_by will skip the first element; use -new_range to put it back
+        for x in (pos.0-new_range..=pos.0+range).step_by(new_range as usize) {
+            for y in (pos.1-new_range..=pos.1+range).step_by(new_range as usize) {
+                for z in (pos.2-new_range..=pos.2+range).step_by(new_range as usize) {
+                    let state = make_search_state(&nanobots, (x, y, z), new_range);
+                    if state.0 > 0 {
+                        queue.push(state);
                     }
                 }
             }
         }
-
-        if range == 1 {
-            return best_val;
-        }
-
-        xs = (best.0 - range, best.0 + range);
-        ys = (best.1 - range, best.1 + range);
-        zs = (best.2 - range, best.2 + range);
-
-        range /= 2;
     }
+
+    panic!("no solution found")
 }
 
 fn main() {
@@ -185,7 +204,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{part_01, part_02_z3, INPUT};
+    use crate::{part_01, part_02, INPUT};
     use test_case::test_case;
     static TEST_INPUT: &str = r"pos=<0,0,0>, r=4
 pos=<1,0,0>, r=1
@@ -210,8 +229,9 @@ pos=<10,10,10>, r=5";
         assert_eq!(count, part_01(input));
     }
 
-    #[test]
-    fn test_part_02() {
-        assert_eq!(36, part_02_z3(TEST_INPUT_2));
+    #[test_case(TEST_INPUT_2, 36)]
+    #[test_case(INPUT, 108618801)]
+    fn test_part_02(input: &str, dist: i64) {
+        assert_eq!(dist, part_02(input));
     }
 }
