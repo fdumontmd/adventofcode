@@ -55,62 +55,62 @@ fn part_01(input: &str) -> usize {
         .count()
 }
 
-fn _part_02_z3(input: &str) -> i64 {
-    use z3::ast;
-
-    let nanobots: Vec<_> = input
-        .lines()
-        .filter(|l| !l.trim().is_empty())
-        .map(Nanobot::from_str)
-        .collect();
-
-    let cfg = z3::Config::new();
-    let ctx = z3::Context::new(&cfg);
-    let opt = z3::Optimize::new(&ctx);
-    let x = ast::Int::new_const(&ctx, "x");
-    let y = ast::Int::new_const(&ctx, "y");
-    let z = ast::Int::new_const(&ctx, "z");
-
-    let zero = ast::Int::from_i64(&ctx, 0);
-    let one = ast::Int::from_i64(&ctx, 1);
-
-    // ideally, a closure would be nice as I would not have to pass the ctx around
-
-    fn abs<'ctx, 'a>(ctx: &'ctx z3::Context, x: &'a ast::Int<'ctx>) -> ast::Int<'ctx> {
-        x.lt(&ast::Int::from_i64(ctx, 0))
-            .ite(&(ast::Int::from_i64(ctx, -1) * x), x)
-    }
-
-    let mut in_range = ast::Int::from_i64(&ctx, 0);
-
-    for n in nanobots {
-        let bot_x = ast::Int::from_i64(&ctx, n.position.0);
-        let bot_y = ast::Int::from_i64(&ctx, n.position.1);
-        let bot_z = ast::Int::from_i64(&ctx, n.position.2);
-
-        let bot_radius = ast::Int::from_i64(&ctx, n.range) + &one;
-
-        let dist_x = abs(&ctx, &(bot_x - &x));
-        let dist_y = abs(&ctx, &(bot_y - &y));
-        let dist_z = abs(&ctx, &(bot_z - &z));
-        let distance_to_bot = &dist_x + &dist_y + &dist_z;
-
-        in_range = &in_range + distance_to_bot.lt(&bot_radius).ite(&one, &zero);
-    }
-    opt.maximize(&in_range);
-
-    let dist_x = abs(&ctx, &x);
-    let dist_y = abs(&ctx, &y);
-    let dist_z = abs(&ctx, &z);
-    let distance_to_origin = dist_x + dist_y + dist_z;
-
-    opt.minimize(&distance_to_origin);
-
-    opt.check(&[]);
-    let m = opt.get_model().unwrap();
-    let res = m.eval(&distance_to_origin, true).unwrap().as_i64().unwrap();
-    res
-}
+// fn _part_02_z3(input: &str) -> i64 {
+//     use z3::ast;
+//
+//     let nanobots: Vec<_> = input
+//         .lines()
+//         .filter(|l| !l.trim().is_empty())
+//         .map(Nanobot::from_str)
+//         .collect();
+//
+//     let cfg = z3::Config::new();
+//     let ctx = z3::Context::new(&cfg);
+//     let opt = z3::Optimize::new(&ctx);
+//     let x = ast::Int::new_const(&ctx, "x");
+//     let y = ast::Int::new_const(&ctx, "y");
+//     let z = ast::Int::new_const(&ctx, "z");
+//
+//     let zero = ast::Int::from_i64(&ctx, 0);
+//     let one = ast::Int::from_i64(&ctx, 1);
+//
+//     // ideally, a closure would be nice as I would not have to pass the ctx around
+//
+//     fn abs<'ctx, 'a>(ctx: &'ctx z3::Context, x: &'a ast::Int<'ctx>) -> ast::Int<'ctx> {
+//         x.lt(&ast::Int::from_i64(ctx, 0))
+//             .ite(&(ast::Int::from_i64(ctx, -1) * x), x)
+//     }
+//
+//     let mut in_range = ast::Int::from_i64(&ctx, 0);
+//
+//     for n in nanobots {
+//         let bot_x = ast::Int::from_i64(&ctx, n.position.0);
+//         let bot_y = ast::Int::from_i64(&ctx, n.position.1);
+//         let bot_z = ast::Int::from_i64(&ctx, n.position.2);
+//
+//         let bot_radius = ast::Int::from_i64(&ctx, n.range) + &one;
+//
+//         let dist_x = abs(&ctx, &(bot_x - &x));
+//         let dist_y = abs(&ctx, &(bot_y - &y));
+//         let dist_z = abs(&ctx, &(bot_z - &z));
+//         let distance_to_bot = &dist_x + &dist_y + &dist_z;
+//
+//         in_range = &in_range + distance_to_bot.lt(&bot_radius).ite(&one, &zero);
+//     }
+//     opt.maximize(&in_range);
+//
+//     let dist_x = abs(&ctx, &x);
+//     let dist_y = abs(&ctx, &y);
+//     let dist_z = abs(&ctx, &z);
+//     let distance_to_origin = dist_x + dist_y + dist_z;
+//
+//     opt.minimize(&distance_to_origin);
+//
+//     opt.check(&[]);
+//     let m = opt.get_model().unwrap();
+//     let res = m.eval(&distance_to_origin, true).unwrap().as_i64().unwrap();
+//     res
+// }
 
 // previous algo was greedy, so there would always be configuration where the best
 // solution cannot be found because it is in a subspace that was discarded too early.
