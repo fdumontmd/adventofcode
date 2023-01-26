@@ -198,7 +198,11 @@ fn part_02(input: &str) -> i64 {
             return pos.0.abs() + pos.1.abs() + pos.2.abs();
         }
 
-        let new_range = range/2;
+        let new_range = if range > 10000 {
+            range / 10
+        }  else {
+            range / 2
+        };
 
         // skip_by skip the first element in range; -new_range to put it back
         for x in (pos.0-new_range..pos.0+range).step_by(new_range as usize) {
