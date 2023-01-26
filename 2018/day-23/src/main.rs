@@ -159,8 +159,27 @@ fn part_02(input: &str) -> i64 {
 
     let range = (max_xs - min_xs + 1).max((max_ys - min_ys + 1).max(max_zs - min_zs + 1));
 
+    // estimate is wrong: we want to count bots that cover some amount of the cube
+    fn in_range_of_box(bot: &Nanobot, pos: Position, range: i64) -> bool {
+        // bots inside the box
+        if (pos.0..pos.0 + range).contains(&bot.position.0) &&
+        (pos.1..pos.1 + range).contains(&bot.position.1)  &&
+        (pos.2..pos.2 + range).contains(&bot.position.2) {
+            true
+        } else if range < 100 {
+            // ugly hack; if range is large, the approach below takes too much time
+            // presumably, the cutoff could be defined as the distance between nanobots range?
+            let proj = (bot.position.0.clamp(pos.0, pos.0 + range - 1),
+            bot.position.1.clamp(pos.1, pos.1 + range - 1),
+            bot.position.2.clamp(pos.2, pos.2 + range - 1));
+            bot.in_range(proj)
+            } else {
+                (distance(pos, bot.position) - bot.range) / range <= 0
+            }
+    }
+
     fn estimate_nanobots_in_range(bots: &[Nanobot], pos: Position, range: i64) -> usize {
-        bots.iter().filter(|n| (distance(pos, n.position) - n.range) / range <= 0).count()
+        bots.iter().filter(|n| in_range_of_box(n, pos, range)).count()
     }
 
     fn make_search_state(bots: &[Nanobot], pos: Position, range: i64) -> (usize, Reverse<i64>, (i64, i64, i64), i64) {
@@ -181,10 +200,10 @@ fn part_02(input: &str) -> i64 {
 
         let new_range = range/2;
 
-        // step_by will skip the first element; use -new_range to put it back
-        for x in (pos.0-new_range..=pos.0+range).step_by(new_range as usize) {
-            for y in (pos.1-new_range..=pos.1+range).step_by(new_range as usize) {
-                for z in (pos.2-new_range..=pos.2+range).step_by(new_range as usize) {
+        // skip_by skip the first element in range; -new_range to put it back
+        for x in (pos.0-new_range..pos.0+range).step_by(new_range as usize) {
+            for y in (pos.1-new_range..pos.1+range).step_by(new_range as usize) {
+                for z in (pos.2-new_range..pos.2+range).step_by(new_range as usize) {
                     let state = make_search_state(&nanobots, (x, y, z), new_range);
                     if state.0 > 0 {
                         queue.push(state);
@@ -231,6 +250,18 @@ pos=<10,10,10>, r=5";
 
     #[test_case(TEST_INPUT_2, 36)]
     #[test_case(INPUT, 108618801)]
+    #[test_case(r"pos=<1,1,1>, r=3
+pos=<2,2,2>, r=6", 0)]
+    #[test_case(r"pos=<1,1,1>, r=1
+pos=<1000,1000,1000>, r=9999
+pos=<101,100,100>, r=1
+pos=<100,101,100>, r=1
+pos=<100,100,101>, r=1", 300)]
+    #[test_case(r"pos=<1,1,1>, r=1
+pos=<1000,1000,1000>, r=7
+pos=<101,100,109>, r=1
+pos=<100,101,103>, r=1
+pos=<100,100,101>, r=1", 2)]
     fn test_part_02(input: &str, dist: i64) {
         assert_eq!(dist, part_02(input));
     }
