@@ -1,8 +1,8 @@
 use anyhow::{Context, Error, Result};
+use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::ops::{Index, Range};
 use std::str::FromStr;
-use std::collections::VecDeque;
 
 pub type MemItem = i64;
 
@@ -50,14 +50,14 @@ impl OpCode {
             8 => TEq,
             9 => SetBase,
             99 => Stop,
-            _ => panic!(format!("unknown opcode {}", opcode)),
+            _ => panic!("unknown opcode {}", opcode),
         }
     }
 
     fn parameter_count(&self) -> usize {
         use OpCode::*;
         match *self {
-            Add | Mul | TLT |TEq => 3,
+            Add | Mul | TLT | TEq => 3,
             JIT | JIF => 2,
             Input | Output | SetBase => 1,
             Stop => 0,
@@ -86,7 +86,7 @@ impl<'a> Instruction<'a> {
 
         Self {
             computer,
-            opcode, 
+            opcode,
             parameters,
         }
     }
@@ -97,9 +97,7 @@ impl<'a> Instruction<'a> {
                 let location = self.computer.get_parameter(param) as usize;
                 self.computer.get_at(location)
             }
-            ParameterMode::Immediate => {
-                self.computer.get_parameter(param)
-            }
+            ParameterMode::Immediate => self.computer.get_parameter(param),
             ParameterMode::Relative => {
                 let relative = self.computer.get_parameter(param) as isize;
                 let location: usize = (relative + self.computer.base).try_into().unwrap();
@@ -116,7 +114,11 @@ impl<'a> Instruction<'a> {
                 (relative + self.computer.base).try_into().unwrap()
             }
             ParameterMode::Immediate => {
-                panic!(format!("cannot write to immediate parameter: ic: {}, instr: {}", self.computer.ic, self.computer.get_instruction()))
+                panic!(
+                    "cannot write to immediate parameter: ic: {}, instr: {}",
+                    self.computer.ic,
+                    self.computer.get_instruction()
+                )
             }
         };
         self.computer.set_at(location, value);
@@ -189,11 +191,10 @@ impl<'a> Instruction<'a> {
 
             Stop => {}
         }
-
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Computer {
     ic: usize,
     base: isize,
@@ -228,7 +229,7 @@ impl Computer {
     }
 
     fn get_instruction(&self) -> MemItem {
-        self.memory[self.ic as usize]
+        self.memory[self.ic]
     }
 
     pub fn add_input(&mut self, input: MemItem) {
@@ -236,16 +237,16 @@ impl Computer {
     }
 
     pub fn is_stopped(&self) -> bool {
-        self.ic as usize >= self.memory.len() || self.get_instruction() == 99
+        self.ic >= self.memory.len() || self.get_instruction() == 99
     }
 
     fn get_parameter(&self, offset: usize) -> MemItem {
-        self.memory[self.ic as usize + offset]
+        self.memory[self.ic + offset]
     }
 
     pub fn step(&mut self) {
         Instruction::new(self).execute();
-   }
+    }
 
     fn get_input(&mut self) -> MemItem {
         self.input.pop_front().unwrap()
@@ -290,7 +291,7 @@ impl FromStr for Computer {
             .map(|code| {
                 code.trim()
                     .parse::<MemItem>()
-                    .with_context(|| format!("cannot parse {} as code", code))
+                    .with_context(|| format!("cannot parse {code} as code"))
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(Computer::new(memory))
@@ -394,9 +395,13 @@ mod tests {
 
     #[test]
     fn test_copy() -> Result<()> {
-        let mut computer: Computer = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99".parse()?;
+        let mut computer: Computer =
+            "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99".parse()?;
         computer.run();
-        assert_eq!(computer.output, vec![109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]);
+        assert_eq!(
+            computer.output,
+            vec![109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99]
+        );
         Ok(())
     }
 
