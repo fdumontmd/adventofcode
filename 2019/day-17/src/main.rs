@@ -259,6 +259,19 @@ impl Display for Route {
     }
 }
 
+fn strip_commas(mut input: &str) -> &str {
+    input = if let Some(i) = input.strip_prefix(',') {
+        i
+    } else {
+        input
+    };
+    if let Some(i) = input.strip_suffix(',') {
+        i
+    } else {
+        input
+    }
+}
+
 impl Route {
     // return (main, A, B, C)
     fn compress_route(&self) -> (String, String, String, String) {
@@ -283,14 +296,13 @@ impl Route {
             })
             .take_while(|s| s.len() <= 20)
         {
-            let fragments: Vec<_> = complete.split(&a).filter(|f| !f.is_empty()).collect();
+            let fragments: Vec<_> = complete
+                .split(&a)
+                .map(strip_commas)
+                .filter(|f| !f.is_empty())
+                .collect();
             // looking for a prefix in the first frament:
             if let Some(first) = fragments.first() {
-                let first = if first.starts_with(',') {
-                    &first[1..]
-                } else {
-                    first
-                };
                 for b in first
                     .split(',')
                     .scan(String::new(), |s, c| {
@@ -306,17 +318,10 @@ impl Route {
                     let fragments: Vec<_> = fragments
                         .iter()
                         .flat_map(|f| f.split(&b))
+                        .map(strip_commas)
                         .filter(|f| !f.is_empty() && f != &",")
                         .collect();
-                    if let Some(first) = fragments.first() {
-                        let mut c = if first.starts_with(',') {
-                            &first[1..]
-                        } else {
-                            first
-                        };
-                        if c.ends_with(',') {
-                            c = &c[0..c.len() - 1];
-                        }
+                    if let Some(&c) = fragments.first() {
                         let c = c.to_owned();
                         if fragments
                             .iter()
