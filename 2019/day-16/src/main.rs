@@ -60,6 +60,8 @@ fn phase_integral(signal: Vec<u8>) -> Vec<u8> {
         .abs()
         % 10) as u8;
 
+    // optimising for second half of array does not bring enough
+    // benefits
     for idx in 1..res.len() {
         res[idx] = ((positive_ranges(idx)
             .take_while(|(s, _)| *s < res.len())
