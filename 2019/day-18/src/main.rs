@@ -1,4 +1,5 @@
 use std::fmt;
+use std::ops::IndexMut;
 use std::{
     cmp::Reverse,
     collections::{BinaryHeap, HashMap, HashSet},
@@ -30,10 +31,6 @@ impl Keys {
 
     fn key_count(&self) -> u32 {
         self.0.count_ones()
-    }
-
-    fn has_any(&self, other: Keys) -> bool {
-        other.0 == 0 || self.0 & other.0 != 0
     }
 }
 
@@ -81,25 +78,19 @@ impl Grid {
         pos.0 + self.width * pos.1
     }
 
-    fn keys(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+    fn origin(&self) -> Option<(usize, usize)> {
         self.grid
             .iter()
-            .enumerate()
-            .filter(|(_, b)| b.is_ascii_lowercase())
-            .map(|(idx, _)| self.idx_to_pos(idx))
+            .position(|&b| b == b'@')
+            .map(|p| self.idx_to_pos(p))
     }
 
-    fn doors(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+    fn all_starting_tags(&self) -> Vec<u8> {
         self.grid
             .iter()
-            .enumerate()
-            .filter(|(_, b)| b.is_ascii_uppercase())
-            .map(|(idx, _)| self.idx_to_pos(idx))
-    }
-
-    fn origin(&self) -> (usize, usize) {
-        let idx = self.grid.iter().position(|&b| b == b'@').unwrap();
-        self.idx_to_pos(idx)
+            .cloned()
+            .filter(|b| b.is_ascii_digit() || *b == b'@')
+            .collect()
     }
 
     fn neighbours(&self, pos: (usize, usize)) -> impl Iterator<Item = (usize, usize)> + '_ {
@@ -118,11 +109,12 @@ impl Grid {
 
     // return a map from significant idx (non-empty, non-wall) to directly reachable
     // in the minimum number of steps. Directly here means not going over another key or
-    // throug a door
+    // through a door
     fn compress_graph(&self) -> Graph {
         let mut neighbours = HashMap::new();
         for (idx, b) in self.grid.iter().enumerate().filter_map(|(idx, b)| {
-            if b.is_ascii_alphabetic() || *b == b'@' {
+            // allow [a-z][A-Z] and [0-9] for multirobots
+            if b.is_ascii_alphanumeric() || *b == b'@' {
                 Some((idx, *b))
             } else {
                 None
@@ -162,33 +154,54 @@ impl Grid {
         neighbours
     }
 
-    // unacceptably slow
-    fn collect_all(&self) -> Option<usize> {
+    // search pattern for graph:
+    // - fringe as BinaryHeap with the number of steps are the primary factor (use Reverse to
+    // minimize)
+    // - best as HashMap between state and steps
+    // - maybe initialize origin as 0 if needed (not needed here as origin or start of search are
+    // always excluded from expansion by other aspect of the problem)
+    // - for state in fringe {
+    //     for neighbour in state.neighbours {
+    //       if neighbour.dist < best[neighbours] {
+    //         best[neighbour] = neighbour.dist
+    //         fringe.insert(neighbour)
+    //       }
+    //     }
+    // }
+
+    fn collect_all<const N: usize>(&self) -> Option<usize> {
         let mut graph = self.compress_graph();
         let mut fringe = BinaryHeap::new();
 
         let mut best = HashMap::new();
+        let starting_tags = self.all_starting_tags();
+        let bots: [u8; N] = std::array::from_fn(|i| starting_tags[i]);
 
-        fringe.push((Reverse(0), self[self.origin()], Keys::new()));
+        fringe.push((Reverse(0), bots, Keys::new()));
 
-        while let Some((steps, b, keys)) = fringe.pop() {
+        while let Some((steps, bots, keys)) = fringe.pop() {
             if keys.key_count() == self.key_count {
                 return Some(steps.0);
             }
 
-            if let Some(&best_so_far) = best.get(&(b, keys)) {
+            if let Some(&best_so_far) = best.get(&(bots, keys)) {
                 if steps.0 > best_so_far {
                     continue;
                 }
             }
 
-            for (dist, b) in graph.neighbours(b, keys) {
-                let keys = keys.add_key(*b);
-                let dist = steps.0 + dist;
-                let best_entry = best.entry((*b, keys)).or_insert(usize::MAX);
-                if dist < *best_entry {
-                    *best_entry = dist;
-                    fringe.push((Reverse(dist), *b, keys));
+            for (idx, bot) in bots.iter().enumerate() {
+                for (dist, b) in graph.neighbours(*bot, keys) {
+                    let keys = keys.add_key(*b);
+                    let dist = steps.0 + dist;
+                    let mut bots = bots;
+                    bots[idx] = *b;
+                    let best_entry = best.entry((bots, keys)).or_insert(usize::MAX);
+                    // need to update bots
+                    if dist < *best_entry {
+                        *best_entry = dist;
+                        fringe.push((Reverse(dist), bots, keys));
+                    }
                 }
             }
         }
@@ -251,6 +264,13 @@ impl Index<(usize, usize)> for Grid {
     }
 }
 
+impl IndexMut<(usize, usize)> for Grid {
+    fn index_mut(&mut self, pos: (usize, usize)) -> &mut Self::Output {
+        let idx = self.pos_to_idx(pos);
+        &mut self.grid[idx]
+    }
+}
+
 impl Display for Grid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{}x{}", self.width, self.height)?;
@@ -264,14 +284,38 @@ impl Display for Grid {
     }
 }
 
+fn part_01(input: &str) -> usize {
+    Grid::from_str(input).collect_all::<1>().unwrap()
+}
+
+fn part_02(input: &str) -> usize {
+    let mut grid = Grid::from_str(input);
+
+    let Some(origin) = grid.origin() else { panic!("Origin no longer present?") };
+
+    let neighbours: Vec<_> = grid.neighbours(origin).collect();
+    for n in neighbours {
+        grid[n] = b'#';
+    }
+    grid[origin] = b'#';
+
+    // add the new robots
+    grid[(origin.0 - 1, origin.1 - 1)] = b'1';
+    grid[(origin.0 + 1, origin.1 - 1)] = b'2';
+    grid[(origin.0 - 1, origin.1 + 1)] = b'3';
+    grid[(origin.0 + 1, origin.1 + 1)] = b'4';
+
+    grid.collect_all::<4>().unwrap()
+}
+
 fn main() {
-    let grid = Grid::from_str(INPUT);
-    println!("{:?}", grid.collect_all());
+    println!("Part 1: {}", part_01(INPUT));
+    println!("Part 2: {}", part_02(INPUT));
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::Grid;
+    use crate::{part_01, part_02, INPUT};
     use test_case::test_case;
 
     #[test_case(
@@ -317,7 +361,33 @@ mod tests {
     ########################",
         81
     )]
+    #[test_case(INPUT, 3866)]
     fn test_part_1(input: &str, steps: usize) {
-        assert_eq!(steps, Grid::from_str(input).collect_all().unwrap());
+        assert_eq!(steps, part_01(input));
+    }
+
+    #[test_case(
+        r"#######
+#a.#Cd#
+##...##
+##.@.##
+##...##
+#cB#Ab#
+#######",
+        8
+    )]
+    #[test_case(
+        r"###############
+#d.ABC.#.....a#
+######   ######
+###### @ ######
+######   ######
+#b.....#.....c#
+###############",
+        24
+    )]
+    #[test_case(INPUT, 1842)]
+    fn test_part_2(input: &str, steps: usize) {
+        assert_eq!(steps, part_02(input));
     }
 }
