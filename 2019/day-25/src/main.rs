@@ -4,10 +4,6 @@ use intcode::Computer;
 
 static INPUT: &str = include_str!("input.txt");
 
-struct Ascii {
-    computer: Computer,
-}
-
 // hardcode the navigation for now
 // ideas:
 // - code in current shape could be automated; just need a method
@@ -48,6 +44,10 @@ static SCRIPT: &[&str] = &[
     "north",
     "inv",
 ];
+
+struct Ascii {
+    computer: Computer,
+}
 
 impl Ascii {
     fn execute(&mut self, cmd: &str) {
