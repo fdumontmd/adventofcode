@@ -1,6 +1,8 @@
 use anyhow::{Context, Error, Result};
 use std::collections::VecDeque;
+use std::convert::TryFrom;
 use std::convert::TryInto;
+use std::fmt::Write;
 use std::ops::{Index, Range};
 use std::str::FromStr;
 
@@ -23,6 +25,7 @@ impl ParameterMode {
     }
 }
 
+#[derive(Eq, PartialEq)]
 enum OpCode {
     Add,
     Mul,
@@ -266,8 +269,12 @@ impl Computer {
         }
     }
 
+    pub fn waiting_for_input(&self) -> bool {
+        OpCode::new(self.get_instruction()) == OpCode::Input && self.input.is_empty()
+    }
+
     pub fn wait_until_output(&mut self) -> Option<MemItem> {
-        while !self.is_stopped() && self.output.is_empty() {
+        while !self.is_stopped() && self.output.is_empty() && !self.waiting_for_input() {
             self.step();
         }
         self.output.pop()
@@ -311,6 +318,47 @@ impl Index<Range<MemItem>> for Computer {
 
     fn index(&self, r: Range<MemItem>) -> &Self::Output {
         &self.memory[r.start as usize..r.end as usize]
+    }
+}
+
+pub struct Ascii {
+    computer: Computer,
+}
+impl FromStr for Ascii {
+    type Err = Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Ok(Ascii {
+            computer: s.parse()?,
+        })
+    }
+}
+
+impl Ascii {
+    pub fn execute(&mut self, cmd: &str) {
+        println!("{cmd}");
+        let cmd = cmd.trim();
+        for b in cmd.trim().bytes() {
+            self.computer.add_input(b as i64);
+        }
+        self.computer.add_input(10);
+    }
+
+    pub fn show_output(&mut self) -> String {
+        let mut line = String::new();
+        while let Some(o) = self.computer.wait_until_output() {
+            if let Ok(b) = u8::try_from(o) {
+                write!(&mut line, "{}", b as char).expect("write, dammit");
+            } else {
+                self.computer.emit_output(o);
+                break;
+            }
+        }
+        line
+    }
+
+    pub fn non_ascii_output(&mut self) -> Option<i64> {
+        self.computer.wait_until_output()
     }
 }
 
