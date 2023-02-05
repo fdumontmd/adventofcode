@@ -259,6 +259,10 @@ impl Computer {
         self.output.clone()
     }
 
+    pub fn get_and_clear_output(&mut self) -> Vec<MemItem> {
+        self.output.drain(0..).collect()
+    }
+
     fn emit_output(&mut self, v: MemItem) {
         self.output.push(v);
     }
@@ -278,6 +282,10 @@ impl Computer {
             self.step();
         }
         self.output.pop()
+    }
+
+    pub fn has_output(&self) -> bool {
+        !self.output.is_empty()
     }
 
     pub fn set_noun(&mut self, noun: MemItem) {
