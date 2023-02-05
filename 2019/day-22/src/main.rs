@@ -25,82 +25,30 @@ impl Sorting {
     }
 }
 
-struct Deck {
-    cards: Vec<usize>,
+// invert the group built from the instructions
+// then take the stupidly large power of that group
+// -> need to look up: linear group over finite field inverse
+//                     linear group over finite fields exponent
+fn part_2() -> i128 {
+    let g = Group::from_str(119315717514047, INPUT);
+    let gi = g.inverse();
+    let gmi = gi.exponent(101741582076661);
+    gmi.apply(2020)
 }
 
-impl Deck {
-    fn new(size: usize) -> Self {
-        Self {
-            cards: Vec::from_iter(0..size),
-        }
-    }
-
-    fn apply(&mut self, sort: Sorting) {
-        match sort {
-            Sorting::DealIntoNewStack => self.deal_into_new_stack(),
-            Sorting::Cut(c) => self.cut(c),
-            Sorting::DealWithIncrement(i) => self.deal_with_increment(i),
-        }
-    }
-
-    fn apply_all(&mut self, sort: &Vec<Sorting>) {
-        for s in sort {
-            self.apply(*s);
-        }
-    }
-
-    fn deal_into_new_stack(&mut self) {
-        self.cards.reverse()
-    }
-
-    fn cut(&mut self, n: isize) {
-        if n > 0 {
-            self.cards.rotate_left(n as usize);
-        } else if n < 0 {
-            self.cards.rotate_right(n.abs() as usize);
-        }
-    }
-
-    fn deal_with_increment(&mut self, inc: usize) {
-        let mut new_cards = vec![0; self.cards.len()];
-        let mut pointer = 0;
-        for card in &self.cards {
-            new_cards[pointer] = *card;
-            pointer = (pointer + inc) % new_cards.len();
-        }
-        self.cards = new_cards;
-    }
-}
 fn part_1() -> usize {
     const DECK_SIZE: i128 = 10007;
-    let mut group = Group::new(DECK_SIZE);
+    let mut group = Group::unit(DECK_SIZE);
     for line in INPUT.lines() {
         let sort = Sorting::from_str(line);
-        group = group.then(&Group::from_sorting(DECK_SIZE, sort));
+        group = group.mult_by(&Group::from_sorting(DECK_SIZE, sort));
     }
 
     group.apply(2019) as usize
 }
 
-// fn part_1() -> usize {
-//     let mut deck = Deck::new(10007);
-//     for line in INPUT.lines() {
-//         let sort = Sorting::from_str(line);
-//         deck.apply(sort);
-//     }
-//     dbg!(deck.cards.iter().position(|c| *c == 2019).unwrap());
-//
-//     let mut group = Group::new(10007);
-//     for line in INPUT.lines() {
-//         let sort = Sorting::from_str(line);
-//         let g = Group::from_sorting(10007, sort);
-//         group = group.then(&g);
-//     }
-//     group.apply(2019) as usize
-// }
-
-#[derive(Debug)]
+// worked this out from Reddit thread when I saw a*x+b as a group over modular integers
+#[derive(Debug, Copy, Clone)]
 struct Group {
     a: i128,
     b: i128,
@@ -108,7 +56,7 @@ struct Group {
 }
 
 impl Group {
-    fn new(l: i128) -> Self {
+    fn unit(l: i128) -> Self {
         Self { a: 1, b: 0, l }
     }
     fn from_sorting(l: i128, sort: Sorting) -> Self {
@@ -131,9 +79,9 @@ impl Group {
         }
     }
 
-    fn then(&self, other: &Self) -> Self {
+    fn mult_by(&self, other: &Self) -> Self {
         Group {
-            a: (self.a * other.a) % self.l,
+            a: (self.a * other.a).rem_euclid(self.l),
             b: ((other.a * self.b) + other.b).rem_euclid(self.l),
             l: self.l,
         }
@@ -143,15 +91,70 @@ impl Group {
         let axb = self.a * x + self.b;
         axb.rem_euclid(self.l)
     }
+
+    fn inverse(&self) -> Self {
+        let ee = extended_gcd(self.l, self.a);
+        let ai = ee.1 .0;
+
+        assert_eq!(1, (self.a * ai).rem_euclid(self.l));
+
+        Self {
+            a: ai,
+            b: (-self.b * ai).rem_euclid(self.l),
+            l: self.l,
+        }
+    }
+
+    fn from_str(l: i128, input: &str) -> Self {
+        input
+            .lines()
+            .map(Sorting::from_str)
+            .fold(Group::unit(l), |s, g| s.mult_by(&Group::from_sorting(l, g)))
+    }
+
+    fn exponent(&self, mut exp: i128) -> Self {
+        let mut result = Group::unit(self.l);
+        let mut base = *self;
+
+        while exp > 0 {
+            if exp % 2 == 1 {
+                result = result.mult_by(&base);
+            }
+            exp >>= 1;
+            base = base.mult_by(&base);
+        }
+
+        result
+    }
+}
+
+// copied from my aoc lib...
+pub fn extended_gcd(a: i128, b: i128) -> (i128, (i128, i128), (i128, i128)) {
+    let mut old_r = a;
+    let mut r = b;
+    let mut old_s = 1;
+    let mut s = 0;
+    let mut old_t = 0;
+    let mut t = 1;
+
+    while r != 0 {
+        let quotient = old_r / r;
+        (old_r, r) = (r, old_r - quotient * r);
+        (old_s, s) = (s, old_s - quotient * s);
+        (old_t, t) = (t, old_t - quotient * t);
+    }
+
+    (old_r, (old_t, old_s), (t, s))
 }
 
 fn main() {
     println!("part 1: {}", part_1());
+    println!("part 2: {}", part_2());
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Deck, Group, Sorting};
+    use crate::{Group, Sorting};
     use test_case::test_case;
 
     fn parse_test_case(input: &str) -> (Vec<Sorting>, Vec<usize>) {
@@ -174,72 +177,6 @@ mod tests {
         }
 
         (sorting, result)
-    }
-
-    #[test]
-    fn test_deal_new_stack() {
-        let mut deck = Deck::new(10);
-        deck.deal_into_new_stack();
-        assert_eq!(vec![9, 8, 7, 6, 5, 4, 3, 2, 1, 0], deck.cards);
-    }
-
-    #[test]
-    fn test_cut_3() {
-        let mut deck = Deck::new(10);
-        deck.cut(3);
-        assert_eq!(vec![3, 4, 5, 6, 7, 8, 9, 0, 1, 2], deck.cards);
-    }
-
-    #[test]
-    fn test_cut_minus_4() {
-        let mut deck = Deck::new(10);
-        deck.cut(-4);
-        assert_eq!(vec![6, 7, 8, 9, 0, 1, 2, 3, 4, 5], deck.cards);
-    }
-
-    #[test]
-    fn test_deal_with_increment_3() {
-        let mut deck = Deck::new(10);
-        deck.deal_with_increment(3);
-        assert_eq!(vec![0, 7, 4, 1, 8, 5, 2, 9, 6, 3], deck.cards);
-    }
-
-    #[test_case(
-        r"deal with increment 7
-deal into new stack
-deal into new stack
-Result: 0 3 6 9 2 5 8 1 4 7"
-    )]
-    #[test_case(
-        r"cut 6
-deal with increment 7
-deal into new stack
-Result: 3 0 7 4 1 8 5 2 9 6"
-    )]
-    #[test_case(
-        r"deal with increment 7
-deal with increment 9
-cut -2
-Result: 6 3 0 7 4 1 8 5 2 9"
-    )]
-    #[test_case(
-        r"deal into new stack
-cut -2
-deal with increment 7
-cut 8
-cut -4
-deal with increment 7
-cut 3
-deal with increment 9
-deal with increment 3
-cut -1
-Result: 9 2 5 8 1 4 7 0 3 6"
-    )]
-    fn test_sorting(input: &str) {
-        let (sorting, result) = parse_test_case(input);
-        let mut deck = Deck::new(10);
-        deck.apply_all(&sorting);
-        assert_eq!(result, deck.cards);
     }
 
     #[test_case(
@@ -275,10 +212,10 @@ Result: 9 2 5 8 1 4 7 0 3 6"
     )]
     fn test_group(input: &str) {
         let (sorting, result) = parse_test_case(input);
-        let mut group = Group::new(10);
+        let mut group = Group::unit(10);
         for s in sorting {
             let g = Group::from_sorting(10, s);
-            group = group.then(&g);
+            group = group.mult_by(&g);
         }
         let mut out: Vec<usize> = vec![0; 10];
         (0..10).for_each(|d| out[group.apply(d) as usize] = d as usize);
@@ -301,5 +238,66 @@ Result: 9 2 5 8 1 4 7 0 3 6"
             9,
             dbg!(Group::from_sorting(10, Sorting::DealWithIncrement(7)).apply(7)),
         );
+    }
+
+    #[test]
+    fn test_inverse() {
+        let g = Group::from_sorting(10, Sorting::DealWithIncrement(7));
+        let gi = g.inverse();
+
+        let u = g.mult_by(&gi);
+        assert_eq!(u.a, 1);
+        assert_eq!(u.b, 0);
+        for i in 0..10 {
+            assert_eq!(i, u.apply(i));
+        }
+    }
+
+    #[test_case(
+        r"deal with increment 7
+deal into new stack
+deal into new stack
+Result: 0 3 6 9 2 5 8 1 4 7"
+    )]
+    #[test_case(
+        r"cut 6
+deal with increment 7
+deal into new stack
+Result: 3 0 7 4 1 8 5 2 9 6"
+    )]
+    #[test_case(
+        r"deal with increment 7
+deal with increment 9
+cut -2
+Result: 6 3 0 7 4 1 8 5 2 9"
+    )]
+    #[test_case(
+        r"deal into new stack
+cut -2
+deal with increment 7
+cut 8
+cut -4
+deal with increment 7
+cut 3
+deal with increment 9
+deal with increment 3
+cut -1
+Result: 9 2 5 8 1 4 7 0 3 6"
+    )]
+    fn test_inverse_complexe(input: &str) {
+        let (sorting, result) = parse_test_case(input);
+        let mut group = Group::unit(10);
+        for s in sorting {
+            let g = Group::from_sorting(10, s);
+            group = group.mult_by(&g);
+        }
+        let gi = group.inverse();
+        let u = group.mult_by(&gi);
+        assert_eq!(u.a, 1);
+        assert_eq!(u.b, 0);
+        // group maps card position to card position
+        for i in 0..10 {
+            assert_eq!(result[i] as i128, gi.apply(i as i128));
+        }
     }
 }
