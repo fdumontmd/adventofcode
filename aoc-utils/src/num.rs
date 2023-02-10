@@ -8,7 +8,7 @@ pub fn extended_gcd(a: i64, b: i64) -> (i64, (i64, i64), (i64, i64)) {
     let mut t = 1;
 
     while r != 0 {
-        let quotient = old_r / r;
+        let quotient = old_r.div_euclid(r);
         (old_r, r) = (r, old_r - quotient * r);
         (old_s, s) = (s, old_s - quotient * s);
         (old_t, t) = (t, old_t - quotient * t);
@@ -45,5 +45,10 @@ mod test {
     #[test]
     fn test_cr_5_7_12() {
         assert_eq!((37, 420), chinese_remainders(&[(2, 5), (2, 7), (1, 12)]));
+    }
+
+    #[test]
+    fn test_cr_3_5_7() {
+        assert_eq!((23, 105), chinese_remainders(&[(2, 3), (3, 5), (2, 7)]));
     }
 }
