@@ -30,7 +30,6 @@ fn part_2(input: &str) -> i64 {
         .collect();
 
     let x = chinese_remainders(&ids);
-    let x = (x.0.rem_euclid(x.1), x.1);
 
     x.0.rem_euclid(x.1)
 }
