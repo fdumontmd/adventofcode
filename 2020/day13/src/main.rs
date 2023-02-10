@@ -17,10 +17,6 @@ fn part_1(input: &str) -> usize {
     wait * id
 }
 
-// not thinking this one right
-// chinese remainders are involved, but
-// something about the numbers
-// are not right
 fn part_2(input: &str) -> i64 {
     let lines: Vec<_> = input.lines().collect();
     let ids: Vec<_> = lines[lines.len() - 1]
