@@ -61,8 +61,21 @@ impl<T, D> Grid<T, D> {
         self.grid.iter()
     }
 
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.grid.iter_mut()
+    }
+
     pub fn replace_with(&self, grid: Vec<T>) -> Self {
+        assert_eq!(grid.len(), self.grid.len());
         Self { grid, ..*self }
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
     }
 }
 
