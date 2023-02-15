@@ -1,58 +1,127 @@
+use std::collections::{HashMap, HashSet};
+
 const INPUT: &str = include_str!("input");
 
 fn part01(input: &str) -> usize {
-    input.lines().map(|l| l.split('|').nth(1).expect(&format!("cannot parse line {}", l)).split_whitespace().filter(|n| n.len() == 2 || n.len() == 3 || n.len() == 4 || n.len() == 7).count()).sum()
+    input
+        .lines()
+        .map(|l| {
+            l.split('|')
+                .nth(1)
+                .expect(&format!("cannot parse line {}", l))
+                .split_whitespace()
+                .filter(|n| n.len() == 2 || n.len() == 3 || n.len() == 4 || n.len() == 7)
+                .count()
+        })
+        .sum()
 }
 
-fn part02(input: &str) -> usize {
-    // analysis:
-    // 1 -> 2 segments
-    // 7 -> 3
-    // 4 -> 4
-    // 2 -> 5
-    // 3 -> 5
-    // 5 -> 5
-    // 0 -> 6 
-    // 6 -> 6
-    // 9 -> 6
-    // 8 -> 7
-    
-    // so 1, 4, 7 and 8 are unique segment counts
-    // 7 - 1 gives us real a
-    // 4 - 1 gives bd
-    // 8 - 4 gives aeg
-    // 7 - 4 gives a
-    // 4 - 7 gives bd
-    // 0 and 1 have 2 common segments
-    // 2 and 1 have 1
-    // 3 and 1 have 2
-    // 5 and 1 have 1
-    // 6 and 1 have 1
-    // 9 have 2
-    // -> with 1, can find 3, 6
-    //
-    // 0 and 4 have 3
-    // 2 and 4 have 2
-    // 3 and 4 have 3
-    // 5 and 5 have 3
-    // 6 and 4 have 3
-    // 9 and 4 have 4
-    // with 4, can find 2, 9
-    //
-    // 0 and 7 have 3
-    // 2 and 7 have 2
-    // 3 and 7 have 3
-    // 5 and 7 have 2
-    // 6 and 7 have 2
-    // 9 and 7 have 3
-    // with 7, can find 6, 3
-    //
-    // with 2, 3, can find 5
-    // with 6, 9, can find 0
-    
-    // 8 is useless
+fn shared_segments(s1: &str, s2: &str) -> usize {
+    let s1: HashSet<u8> = HashSet::from_iter(s1.bytes());
+    let s2 = HashSet::from_iter(s2.bytes());
+    s1.intersection(&s2).count()
+}
 
-    0
+fn sort_segment(s: &str) -> String {
+    let mut s: Vec<u8> = s.bytes().collect();
+    s.sort();
+    String::from_utf8(s).unwrap()
+}
+
+fn decode_digits(input: &str) -> u64 {
+    // start from len:
+    // 2 -> 1
+    // 3 -> 7
+    // 4 -> 4
+    // 6 -> 8
+    // next are 5 letter segments:
+    // 2, 3, 5
+    // 3 intersect 1 == 2
+    // 2 intersect 4 == 2
+    // otherwise, 5
+    // next are 6 letter segments:
+    // 0, 6, 9
+    // 6 intersect 1 == 1
+    // 9 intersect 3 == 5
+    // otherwise 0
+
+    // need to sort all the entries
+    let parts: Vec<_> = input.split(" | ").collect();
+    let mut samples: HashSet<_> = parts[0].split_whitespace().map(sort_segment).collect();
+    let digits: Vec<_> = parts[1].split_whitespace().map(sort_segment).collect();
+
+    let mut mapping: HashMap<String, u64> = HashMap::new();
+    let one = samples.iter().cloned().find(|s| s.len() == 2).unwrap();
+    let seven = samples.iter().cloned().find(|s| s.len() == 3).unwrap();
+    let four = samples.iter().cloned().find(|s| s.len() == 4).unwrap();
+    let eight = samples.iter().cloned().find(|s| s.len() == 7).unwrap();
+
+    samples.remove(&one);
+    samples.remove(&seven);
+    samples.remove(&four);
+    samples.remove(&eight);
+
+    mapping.insert(one.clone(), 1);
+    mapping.insert(seven, 7);
+    mapping.insert(four.clone(), 4);
+    mapping.insert(eight, 8);
+
+    let mut five_letters: HashSet<_> = samples.iter().cloned().filter(|s| s.len() == 5).collect();
+    assert_eq!(3, five_letters.len());
+
+    let three = five_letters
+        .iter()
+        .cloned()
+        .find(|s| shared_segments(s, &one) == 2)
+        .unwrap();
+    let two = five_letters
+        .iter()
+        .cloned()
+        .find(|s| shared_segments(s, &four) == 2)
+        .unwrap();
+    assert_ne!(three, two);
+
+    five_letters.remove(&two);
+    five_letters.remove(&three);
+    let five = five_letters.into_iter().next().unwrap();
+
+    samples.remove(&two);
+    samples.remove(&three);
+    samples.remove(&five);
+
+    mapping.insert(two, 2);
+    mapping.insert(three.clone(), 3);
+    mapping.insert(five, 5);
+
+    assert_eq!(3, samples.len());
+    assert!(samples.iter().all(|s| s.len() == 6));
+
+    let six = samples
+        .iter()
+        .cloned()
+        .find(|s| shared_segments(s, &one) == 1)
+        .unwrap();
+    let nine = samples
+        .iter()
+        .cloned()
+        .find(|s| shared_segments(s, &three) == 5)
+        .unwrap();
+    samples.remove(&six);
+    samples.remove(&nine);
+    let zero = samples.into_iter().next().unwrap();
+
+    mapping.insert(zero, 0);
+    mapping.insert(six, 6);
+    mapping.insert(nine, 9);
+
+    digits
+        .into_iter()
+        .map(|d| mapping[&d])
+        .fold(0, |s, d| s * 10 + d)
+}
+
+fn part02(input: &str) -> u64 {
+    input.lines().map(decode_digits).sum()
 }
 
 fn main() {
@@ -78,10 +147,17 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
     #[test]
     fn test_part01() {
         assert_eq!(26, part01(TEST));
+        assert_eq!(245, part01(INPUT));
+    }
+
+    #[test]
+    fn test_part02_partial() {
+        assert_eq!(5353, part02("acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab | cdfeb fcadb cdfeb cdbaf"));
     }
 
     #[test]
     fn test_part02() {
-        assert_eq!(5353, part02(TEST));
+        assert_eq!(61229, part02(TEST));
+        assert_eq!(983026, part02(INPUT));
     }
 }
