@@ -19,3 +19,5 @@ pub mod ring;
 pub mod union_find;
 
 pub mod num;
+
+pub mod grid;
