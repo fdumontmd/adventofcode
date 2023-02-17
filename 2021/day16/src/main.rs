@@ -93,7 +93,7 @@ impl Packet {
     }
 
     fn version_sum(&self) -> u64 {
-        self.0 + self.1.sum_of_versions()
+        self.0 + self.1.version_sum()
     }
 
     fn value(&self) -> u64 {
@@ -139,7 +139,7 @@ impl PacketType {
         }
     }
 
-    fn sum_of_versions(&self) -> u64 {
+    fn version_sum(&self) -> u64 {
         match self {
             PacketType::Literal(_) => 0,
             PacketType::Operator(_, _, _, sps) => sps.iter().map(|sb| sb.version_sum()).sum(),
@@ -213,6 +213,7 @@ mod tests {
     #[test_case("620080001611562C8802118E34", 12)]
     #[test_case("C0015000016115A2E0802F182340", 23)]
     #[test_case("A0016C880162017C3686B18A3D4780", 31)]
+    #[test_case(crate::INPUT, 889)]
     fn test_part_1(input: &str, version_sum: u64) {
         assert_eq!(version_sum, part_1(input).unwrap());
     }
@@ -225,6 +226,7 @@ mod tests {
     #[test_case("F600BC2D8F", 0)]
     #[test_case("9C005AC2F8F0", 0)]
     #[test_case("9C0141080250320F1802104A08", 1)]
+    #[test_case(crate::INPUT, 739303923668)]
     fn test_part_2(input: &str, value: u64) {
         assert_eq!(value, part_2(input).unwrap());
     }
