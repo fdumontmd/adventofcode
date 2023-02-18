@@ -79,6 +79,21 @@ fn solve_problem(input: &str) -> (usize, i64) {
         beacons.insert(*beacon);
     }
 
+    let mut fingerprints = HashMap::new();
+
+    for s in &problem.scanners {
+        for b1 in &s.beacons {
+            for b2 in &s.beacons {
+                if b1 != b2 {
+                    fingerprints
+                        .entry(s.id)
+                        .or_insert(HashSet::new())
+                        .insert((b1 - b2).len());
+                }
+            }
+        }
+    }
+
     merged.insert(problem[0].id);
     merged_beacons.insert(
         problem[0].id,
@@ -88,37 +103,34 @@ fn solve_problem(input: &str) -> (usize, i64) {
         ),
     );
 
-    // TODO: check reddit for ideas to make it faster
-    // interestingly, those ideas seem to be about distance between beacons; better
-    // than mine which was just difference between beacons so affected by rotations
+    // optimised after checking reddit
+    // had almost the right idea: distance between pairs of beacon
+    // instead of just differences
     while merged.len() < problem.len() {
-        // pick a non merged scanner
-        // for each rotation
-        // - build set of rotated beacons
-        // - for each beacon in s1 and beacon in s2,
-        //   - compute s1 -> s2 b1 - b2 (i.e. s1 -> b1 - (s2 -> b2))
-        //   - then for all b in s2, (s1 -> s2) + (b -> s2)
-        //   - and check how many are in s1 beacons
         'search_loop: for s in problem.scanners.iter().filter(|s| !merged.contains(&s.id)) {
-            for r in math::ROTATIONS {
-                let rotated_beacons: Vec<Vec3D> = Vec::from_iter(s.beacons.iter().map(|b| r * b));
-                for mb in merged_beacons.values() {
-                    for b1 in &mb.1 {
-                        for b2 in &rotated_beacons {
-                            let s2 = b1 - b2;
-                            let s2_beacons: HashSet<Vec3D> =
-                                HashSet::from_iter(rotated_beacons.iter().map(|b2| s2 + *b2));
+            for (id, mb) in &merged_beacons {
+                // 66 = (12 * 11)/2 is the number of distances between any two among 12 different beacons
+                if fingerprints[id].intersection(&fingerprints[&s.id]).count() >= 66 {
+                    for r in math::ROTATIONS {
+                        let rotated_beacons: Vec<Vec3D> =
+                            Vec::from_iter(s.beacons.iter().map(|b| r * b));
+                        for b1 in &mb.1 {
+                            for b2 in &rotated_beacons {
+                                let s2 = b1 - b2;
+                                let s2_beacons: HashSet<Vec3D> =
+                                    HashSet::from_iter(rotated_beacons.iter().map(|b2| s2 + *b2));
 
-                            if mb.1.intersection(&s2_beacons).count() >= 12 {
-                                merged.insert(s.id);
-                                for b in &s2_beacons {
-                                    beacons.insert(mb.0 + *b);
+                                if mb.1.intersection(&s2_beacons).count() >= 12 {
+                                    merged.insert(s.id);
+                                    for b in &s2_beacons {
+                                        beacons.insert(mb.0 + *b);
+                                    }
+                                    scanners.push(mb.0 + s2);
+
+                                    merged_beacons.insert(s.id, (mb.0, s2_beacons));
+
+                                    break 'search_loop;
                                 }
-                                scanners.push(mb.0 + s2);
-
-                                merged_beacons.insert(s.id, (mb.0, s2_beacons));
-
-                                break 'search_loop;
                             }
                         }
                     }
@@ -147,6 +159,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use crate::solve_problem;
+    use test_case::test_case;
 
     static TEST_INPUT: &str = r"--- scanner 0 ---
 404,-588,-901
@@ -285,10 +298,11 @@ mod tests {
 -652,-548,-490
 30,-46,-14";
 
-    #[test]
-    fn test_problem() {
-        let solution = solve_problem(TEST_INPUT);
-        assert_eq!(79, solution.0);
-        assert_eq!(3621, solution.1);
+    #[test_case(TEST_INPUT, 79, 3621)]
+    #[test_case(crate::INPUT, 381, 12201)]
+    fn test_problem(input: &str, beacon_count: usize, max_dist: i64) {
+        let solution = solve_problem(input);
+        assert_eq!(beacon_count, solution.0);
+        assert_eq!(max_dist, solution.1);
     }
 }
