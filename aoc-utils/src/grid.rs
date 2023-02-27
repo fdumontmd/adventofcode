@@ -10,6 +10,7 @@ pub trait Distance {
     fn distance(pos1: (usize, usize), pos2: (usize, usize)) -> usize;
 }
 
+#[derive(Hash, PartialEq, Eq, Ord, PartialOrd, Copy, Clone)]
 pub struct Taxicab;
 
 impl Distance for Taxicab {
@@ -18,6 +19,7 @@ impl Distance for Taxicab {
     }
 }
 
+#[derive(Hash, PartialEq, Eq, Ord, PartialOrd, Copy, Clone)]
 pub struct MaxDist;
 
 impl Distance for MaxDist {
@@ -26,6 +28,7 @@ impl Distance for MaxDist {
     }
 }
 
+#[derive(Hash, PartialEq, Eq, Clone, Ord, PartialOrd)]
 pub struct Grid<T, D> {
     grid: Vec<T>,
     am: PhantomData<D>,
@@ -134,16 +137,16 @@ impl<T, D> IndexMut<(usize, usize)> for Grid<T, D> {
     }
 }
 
-impl<T: Eq, D> PartialEq for Grid<T, D> {
-    fn eq(&self, other: &Self) -> bool {
-        self.grid == other.grid
-            && self.am == other.am
-            && self.width == other.width
-            && self.height == other.height
-    }
-}
-
-impl<T: Eq, D> Eq for Grid<T, D> {}
+// impl<T: Eq, D> PartialEq for Grid<T, D> {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.grid == other.grid
+//             && self.am == other.am
+//             && self.width == other.width
+//             && self.height == other.height
+//     }
+// }
+//
+// impl<T: Eq, D> Eq for Grid<T, D> {}
 
 impl<T: Display, D> Display for Grid<T, D> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
