@@ -46,6 +46,10 @@ pub fn process<'a>(input: &'a str) -> Result<String, AocError> {
     let mut part_1 = 0;
     let mut part_2 = 0;
 
+    // ok, order is not specified but for my data it is increasing,
+    // so second value is also second smallest ev
+    //eprintln!("{:?}", v.s_diagonal());
+
     for i in 0..v.u().nrows() {
         if v.u().read(i, 1) < 0f64 {
             part_1 += 1;
