@@ -1,5 +1,5 @@
-use std::ops::Index;
 use std::fmt::{Debug, Error, Formatter};
+use std::ops::Index;
 
 struct CircularBuffer {
     current_position: usize,
@@ -8,17 +8,15 @@ struct CircularBuffer {
 
 impl CircularBuffer {
     fn new() -> Self {
-        let mut buffer = Vec::new();
-        buffer.push(0);
         CircularBuffer {
             current_position: 0,
-            buffer,
+            buffer: vec![0],
         }
     }
 
     fn move_forward(&mut self, steps: usize) {
         self.current_position += steps;
-        self.current_position = self.current_position % self.buffer.len();
+        self.current_position %= self.buffer.len();
     }
 
     fn insert_after_current(&mut self, val: usize) {
@@ -47,7 +45,7 @@ impl Debug for CircularBuffer {
                 write!(f, "{} ", v)?;
             }
         }
-        write!(f, "\n")
+        writeln!(f)
     }
 }
 
@@ -67,7 +65,7 @@ impl FakeCircularBuffer {
     }
     fn move_forward(&mut self, steps: usize) {
         self.current_position += steps;
-        self.current_position = self.current_position % self.len;
+        self.current_position %= self.len;
     }
 
     fn insert_after_current(&mut self, val: usize) {
@@ -76,7 +74,7 @@ impl FakeCircularBuffer {
         }
         self.current_position += 1;
         self.len += 1;
-        self.current_position = self.current_position % self.len;
+        self.current_position %= self.len;
     }
 }
 
@@ -87,12 +85,15 @@ fn main() {
         cb.move_forward(stride);
         cb.insert_after_current(idx);
     }
-    println!("Next value after 2017 insertions: {}", cb[cb.current_position + 1]);
+    println!(
+        "Next value after 2017 insertions: {}",
+        cb[cb.current_position + 1]
+    );
     // a different approach is needed: iterate over the numbers, and compute the
     // current_position as before, but do not insert anything; just keep track of
     // any number inserted when current_position == 0
     let mut fcb = FakeCircularBuffer::new();
-    for idx in 1..50_000_001 {
+    for idx in 1..=50_000_000 {
         fcb.move_forward(stride);
         fcb.insert_after_current(idx);
     }
