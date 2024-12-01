@@ -63,14 +63,14 @@ mod tests {
 3   9
 3   3";
 
-    #[test_case(TEST_INPUT, 11)]
-    #[test_case(INPUT, 2904518)]
+    #[test_case(TEST_INPUT, 11; "test data")]
+    #[test_case(INPUT, 2904518; "input")]
     pub fn test_part1(input: &str, val: usize) {
         assert_eq!(val, part1(input));
     }
 
-    #[test_case(TEST_INPUT, 31)]
-    #[test_case(INPUT, 18650129)]
+    #[test_case(TEST_INPUT, 31; "test data")]
+    #[test_case(INPUT, 18650129; "input")]
     pub fn test_part2(input: &str, val: usize) {
         assert_eq!(val, part2(input));
     }
