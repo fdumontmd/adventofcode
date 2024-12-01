@@ -54,7 +54,8 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::rstest;
+    use test_case::test_case;
+
     const TEST_INPUT: &str = "3   4
 4   3
 2   5
@@ -62,16 +63,15 @@ mod tests {
 3   9
 3   3";
 
-    #[rstest]
-    #[case(TEST_INPUT, 11)]
-    #[case(INPUT, 2904518)]
-    pub fn test_part1(#[case] input: &str, #[case] val: usize) {
+    #[test_case(TEST_INPUT, 11)]
+    #[test_case(INPUT, 2904518)]
+    pub fn test_part1(input: &str, val: usize) {
         assert_eq!(val, part1(input));
     }
 
-    #[rstest]
-    #[case(TEST_INPUT, 31)]
-    pub fn test_part2(#[case] input: &str, #[case] val: usize) {
+    #[test_case(TEST_INPUT, 31)]
+    #[test_case(INPUT, 18650129)]
+    pub fn test_part2(input: &str, val: usize) {
         assert_eq!(val, part2(input));
     }
 }
