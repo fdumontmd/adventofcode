@@ -1,6 +1,9 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{
+    fmt::Display,
+    ops::{Index, IndexMut},
+};
 
-use aoc_utils::grid::{Grid, Taxicab};
+use aoc_utils::grid::Grid;
 
 const INPUT: &str = include_str!("input.txt");
 
@@ -87,18 +90,46 @@ impl Direction {
     }
 }
 
+struct Visited([bool; 4]);
+
+impl From<&Tile> for Visited {
+    fn from(_: &Tile) -> Self {
+        Visited([false; 4])
+    }
+}
+
+impl Visited {
+    fn visited(&self) -> bool {
+        self.0.iter().any(|b| *b)
+    }
+}
+
+impl Index<Direction> for Visited {
+    type Output = bool;
+
+    fn index(&self, index: Direction) -> &Self::Output {
+        &self.0[index as usize]
+    }
+}
+
+impl IndexMut<Direction> for Visited {
+    fn index_mut(&mut self, index: Direction) -> &mut Self::Output {
+        &mut self.0[index as usize]
+    }
+}
+
 fn visit(
-    grid: &Grid<Tile, Taxicab>,
+    grid: &Grid<Tile, ()>,
     mut pos: (usize, usize),
     mut dir: Direction,
-) -> Option<HashSet<((usize, usize), Direction)>> {
-    let mut visited = HashSet::new();
+) -> Option<Grid<Visited, ()>> {
+    let mut visited: Grid<Visited, ()> = grid.into();
 
     'main: loop {
-        if visited.contains(&(pos, dir)) {
+        if visited[pos][dir] {
             return None;
         }
-        visited.insert((pos, dir));
+        visited[pos][dir] = true;
         loop {
             if let Some(new_pos) = dir.step_forward(pos) {
                 if new_pos.0 < grid.width() && new_pos.1 < grid.height() {
@@ -119,7 +150,7 @@ fn visit(
 }
 
 fn part1(input: &str) -> usize {
-    let mut grid: Grid<Tile, Taxicab> = Grid::try_from(input).unwrap();
+    let mut grid: Grid<Tile, ()> = Grid::try_from(input).unwrap();
 
     let idx = grid
         .iter()
@@ -135,19 +166,21 @@ fn part1(input: &str) -> usize {
     let dir = Direction::from(grid[pos]);
     grid[pos] = Tile::Empty;
 
-    let unique_pos: HashSet<(usize, usize)> = visit(&grid, pos, dir)
+    visit(&grid, pos, dir)
         .unwrap()
-        .into_iter()
-        .map(|(pos, _)| pos)
-        .collect();
-    unique_pos.len()
+        .iter()
+        .filter(|v| v.visited())
+        .count()
 }
 
-// slow...
-// slow in debug, that is... still ok in release
-// possibly replace all the HashSets by arrays?
+impl From<&Tile> for bool {
+    fn from(_value: &Tile) -> Self {
+        false
+    }
+}
+
 fn part2(input: &str) -> usize {
-    let mut grid: Grid<Tile, Taxicab> = Grid::try_from(input).unwrap();
+    let mut grid: Grid<Tile, ()> = Grid::try_from(input).unwrap();
 
     let idx = grid
         .iter()
@@ -164,21 +197,21 @@ fn part2(input: &str) -> usize {
     let mut dir = Direction::from(grid[pos]);
     grid[pos] = Tile::Empty;
 
-    let mut loops: HashSet<(usize, usize)> = HashSet::new();
+    let mut loops: Grid<bool, ()> = (&grid).into();
     // can't put blocks on pos we already visited, so keep track of that
-    let mut visited: HashSet<(usize, usize)> = HashSet::new();
+    let mut visited: Grid<bool, ()> = (&grid).into();
 
     'main: loop {
         loop {
-            visited.insert(pos);
+            visited[pos] = true;
             if let Some(new_pos) = dir.step_forward(pos) {
                 if new_pos.0 < grid.width() && new_pos.1 < grid.height() {
                     if grid[new_pos] == Tile::Empty {
-                        if !visited.contains(&new_pos) {
+                        if !visited[new_pos] {
                             // try to block it
                             grid[new_pos] = Tile::Block;
                             if visit(&grid, pos, dir).is_none() {
-                                loops.insert(new_pos);
+                                loops[new_pos] = true;
                             }
                             grid[new_pos] = Tile::Empty;
                         }
@@ -195,9 +228,9 @@ fn part2(input: &str) -> usize {
         }
     }
 
-    loops.remove(&orig);
+    loops[orig] = false;
 
-    loops.len()
+    loops.iter().filter(|b| **b).count()
 }
 
 fn main() {
