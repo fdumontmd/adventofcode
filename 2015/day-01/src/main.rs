@@ -39,17 +39,19 @@ fn floor(input: &str) -> i64 {
 }
 
 fn first_basement(input: &str) -> Option<usize> {
-    FloorIterator::new(input).position(|f| f == -1).map(|p| p + 1)
+    FloorIterator::new(input)
+        .position(|f| f == -1)
+        .map(|p| p + 1)
 }
 
 fn main() {
-    println!("Floor: {}", floor(&INPUT));
-    println!("First basement: {}", first_basement(&INPUT).unwrap());
+    println!("Floor: {}", floor(INPUT));
+    println!("First basement: {}", first_basement(INPUT).unwrap());
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{floor, first_basement, INPUT};
+    use super::{first_basement, floor, INPUT};
 
     #[test]
     fn test_part_1() {

@@ -14,7 +14,7 @@ struct Box {
 
 impl Box {
     fn new(l: Size, w: Size, h: Size) -> Box {
-        Box { l: l, w: w, h: h }
+        Box { l, w, h }
     }
 
     fn area(&self) -> Size {
@@ -22,7 +22,7 @@ impl Box {
     }
 
     fn two_smallest_sides(&self) -> (Size, Size) {
-        let mut v = vec![self.l, self.w, self.h];
+        let mut v = [self.l, self.w, self.h];
         v.sort();
         (v[0], v[1])
     }
@@ -105,10 +105,7 @@ impl FromStr for Total {
             area += b.total_area();
             ribbon += b.total_ribbon();
         }
-        Ok(Total {
-            area,
-            ribbon,
-        })
+        Ok(Total { area, ribbon })
     }
 }
 
@@ -122,7 +119,7 @@ fn main() -> Result<(), ParseBoxError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Box, INPUT, Total};
+    use super::{Box, Total, INPUT};
 
     #[test]
     fn test_solutions() {

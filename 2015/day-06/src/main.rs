@@ -39,7 +39,6 @@ impl FromStr for Coordinate {
         let bottom_right = v[2].split(',').collect::<Vec<&str>>();
 
         if top_left.len() != 2 || bottom_right.len() != 2 {
-
             return Err(CoordinateParseError::FormatParseError);
         }
 
@@ -47,7 +46,6 @@ impl FromStr for Coordinate {
         let y1 = try!(top_left[1].parse());
         let x2 = try!(bottom_right[0].parse());
         let y2 = try!(bottom_right[1].parse());
-
 
         Ok(Coordinate::new(x1, y1, x2, y2))
     }
@@ -111,11 +109,13 @@ struct Grid {
 
 impl Grid {
     fn new() -> Grid {
-        Grid { lights: vec![false; 1000000] }
+        Grid {
+            lights: vec![false; 1000000],
+        }
     }
 
     fn process(&mut self, c: Command) {
-        let Command{action, coord} = c;
+        let Command { action, coord } = c;
 
         let (col_from, row_from) = coord.top_left;
         let (col_to, row_to) = coord.bottom_right;
@@ -131,7 +131,6 @@ impl Grid {
                 }
             }
         }
-
     }
 
     fn count_on(&self) -> usize {
@@ -139,13 +138,13 @@ impl Grid {
     }
 }
 
-
 fn main() {
     let mut g = Grid::new();
 
     for line in BufReader::new(stdin())
-                    .lines()
-                    .filter_map(|result| result.ok()) {
+        .lines()
+        .filter_map(|result| result.ok())
+    {
         if !line.trim().is_empty() {
             let c: Command = line.parse().unwrap();
             g.process(c);

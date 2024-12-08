@@ -30,7 +30,7 @@ fn solve_at(
 
     // if there's a b'#' within pattern[pat_idx..pat_idx + block_lens[bl_idx]], must consume the
     // first block
-    // simplify to: if first byte is b'#', must consume bloc
+    // simplify to: if first byte is b'#', must consume block
     let mut count = 0;
     if fit_block(&pattern[pat_idx..], block_lens[bl_idx]) {
         let next_block = (pat_idx + block_lens[bl_idx] + 1, bl_idx + 1);
