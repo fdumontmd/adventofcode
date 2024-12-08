@@ -82,6 +82,17 @@ impl<T, D> Grid<T, D> {
     }
 }
 
+impl<'a, U, T: From<&'a U>, D> From<&'a Grid<U, D>> for Grid<T, D> {
+    fn from(value: &'a Grid<U, D>) -> Self {
+        Self {
+            grid: value.grid.iter().map(|v| T::from(v)).collect(),
+            am: value.am,
+            width: value.width(),
+            height: value.height(),
+        }
+    }
+}
+
 impl<T, D: Distance> Grid<T, D> {
     pub fn neighbours(&self, pos: (usize, usize)) -> impl Iterator<Item = (usize, usize)> {
         self.around_pos(pos)
