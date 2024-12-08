@@ -1,18 +1,18 @@
-use std::str::Chars;
+use std::{collections::HashSet, iter::FromIterator};
 
 static INPUT: &str = include_str!("input.txt");
 
-struct DeliveryIter<'a> {
-    c: Chars<'a>,
+struct DeliveryIter<I: Iterator<Item = char>> {
+    c: I,
     x: i64,
     y: i64,
     start: bool,
 }
 
-impl<'a> DeliveryIter<'a> {
-    fn new(s: &'a str) -> DeliveryIter<'a> {
+impl<I: Iterator<Item = char>> DeliveryIter<I> {
+    fn new(c: I) -> DeliveryIter<I> {
         DeliveryIter {
-            c: s.chars(),
+            c,
             x: 0,
             y: 0,
             start: true,
@@ -20,12 +20,12 @@ impl<'a> DeliveryIter<'a> {
     }
 }
 
-impl<'a> Iterator for DeliveryIter<'a> {
+impl<I: Iterator<Item = char>> Iterator for DeliveryIter<I> {
     type Item = (i64, i64);
     fn next(&mut self) -> Option<(i64, i64)> {
         if self.start {
             self.start = false;
-            return Some((0,0));
+            return Some((0, 0));
         }
         if let Some(c) = self.c.next() {
             match c {
@@ -50,39 +50,17 @@ impl<'a> Iterator for DeliveryIter<'a> {
     }
 }
 
-
 fn main() {
-    let mut v: Vec<(i64, i64)> = DeliveryIter::new(INPUT.trim()).collect();
+    let visited: HashSet<(i64, i64)> = HashSet::from_iter(DeliveryIter::new(INPUT.trim().chars()));
 
-    v.sort();
-    v.dedup();
-    println!("Houses visited by single Santa: {}", v.len());
+    println!("Houses visited by single Santa: {}", visited.len());
 
-    let mut santa = String::new();
-    let mut robo_santa = String::new();
+    let mut visited: HashSet<(i64, i64)> =
+        HashSet::from_iter(DeliveryIter::new(INPUT.trim().chars().step_by(2)));
+    visited.extend(DeliveryIter::new(INPUT.trim().chars().skip(1).step_by(2)));
 
-    {
-        let s1 = &mut santa;
-        let s2 = &mut robo_santa;
-
-        for c in INPUT.trim().chars() {
-            s1.push(c);
-            std::mem::swap(s1, s2);
-        }
-    }
-
-    let mut v1: Vec<(i64, i64)> = DeliveryIter::new(&santa).collect();
-    let mut v2: Vec<(i64, i64)> = DeliveryIter::new(&robo_santa).collect();
-
-    v1.append(&mut v2);
-
-    v1.sort();
-    v1.dedup();
-
-    println!("Both Santa and RoboSanta: {}", v1.len());
+    println!("Both Santa and RoboSanta: {}", visited.len());
 }
 
 #[cfg(test)]
-mod tests {
-
-}
+mod tests {}

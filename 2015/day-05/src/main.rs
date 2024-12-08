@@ -19,17 +19,20 @@ pub struct VoyelCount {
 
 impl VoyelCount {
     fn new() -> VoyelCount {
-        VoyelCount { count: 0, kind: None, }
+        VoyelCount {
+            count: 0,
+            kind: None,
+        }
     }
 }
 
 impl Processor for VoyelCount {
     fn accept(&mut self, c: char) -> Option<Kind> {
-        if let Some(_) = self.kind {
+        if self.kind.is_some() {
             return self.kind;
         }
         match c {
-            'a'|'e'|'i'|'u'|'o' => {
+            'a' | 'e' | 'i' | 'u' | 'o' => {
                 self.count += 1;
             }
             _ => {}
@@ -54,13 +57,16 @@ pub struct Double {
 
 impl Double {
     fn new() -> Double {
-        Double { previous: None, kind: None }
+        Double {
+            previous: None,
+            kind: None,
+        }
     }
 }
 
 impl Processor for Double {
     fn accept(&mut self, c: char) -> Option<Kind> {
-        if let Some(_) = self.kind {
+        if self.kind.is_some() {
             return self.kind;
         }
         if let Some(p) = self.previous {
@@ -97,8 +103,8 @@ impl PairMatcher {
     fn new(c1: char, c2: char) -> PairMatcher {
         PairMatcher {
             state: PairState::Start,
-            c1: c1,
-            c2: c2,
+            c1,
+            c2,
             kind: Kind::Nice,
         }
     }
@@ -136,9 +142,8 @@ impl Processor for PairMatcher {
     }
 }
 
-
 pub struct CompoundProcessor<'a> {
-    processors: Vec<&'a mut Processor>,
+    processors: Vec<&'a mut dyn Processor>,
 }
 
 impl<'a> CompoundProcessor<'a> {
@@ -148,7 +153,7 @@ impl<'a> CompoundProcessor<'a> {
         }
     }
 
-    fn add_processor(&mut self, p: &'a mut Processor) {
+    fn add_processor(&mut self, p: &'a mut dyn Processor) {
         self.processors.push(p);
     }
 }
@@ -196,9 +201,9 @@ pub fn check<P: Processor>(p: &mut P, s: &str) -> Kind {
     }
 
     if nice {
-        return Kind::Nice;
+        Kind::Nice
     } else {
-        return Kind::Naughty;
+        Kind::Naughty
     }
 }
 
@@ -229,7 +234,7 @@ fn main() {
 
     for n in input.split('\n') {
         if !n.trim().is_empty() {
-            let k = standard_check(&n);
+            let k = standard_check(n);
             println!("{} is {:?}", n, k);
             if k == Kind::Nice {
                 nice += 1;
