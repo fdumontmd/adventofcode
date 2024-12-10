@@ -100,6 +100,40 @@ impl<T, D: Distance> Grid<T, D> {
     }
 }
 
+impl<T: TryFrom<u8>, D> TryFrom<&[u8]> for Grid<T, D>
+where
+    Error: From<<T as std::convert::TryFrom<u8>>::Error>,
+{
+    type Error = Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let mut width = 0;
+        let grid = value
+            .iter()
+            .cloned()
+            .enumerate()
+            .filter_map(|(idx, b)| {
+                if b == 10 {
+                    if width == 0 {
+                        width = idx;
+                    }
+                    None
+                } else {
+                    Some(b)
+                }
+            })
+            .map(|b| T::try_from(b))
+            .collect::<Result<Vec<_>, _>>()?;
+        let height = grid.len() / width;
+        Ok(Self {
+            am: PhantomData,
+            grid,
+            width,
+            height,
+        })
+    }
+}
+
 impl<T: TryFrom<u8>, D> TryFrom<&str> for Grid<T, D>
 where
     Error: From<<T as std::convert::TryFrom<u8>>::Error>,
