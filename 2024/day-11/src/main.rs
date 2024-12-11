@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 const INPUT: &str = include_str!("input.txt");
 
@@ -9,26 +9,7 @@ fn parse(input: &str) -> Vec<usize> {
         .collect()
 }
 
-fn blink(stones: Vec<usize>) -> Vec<usize> {
-    let mut new_stones = vec![];
-    for stone in stones {
-        if stone == 0 {
-            new_stones.push(1);
-        } else {
-            let digits = stone.ilog10() + 1;
-            if digits % 2 == 0 {
-                let shift = 10usize.pow(digits / 2);
-                new_stones.push(stone / shift);
-                new_stones.push(stone % shift);
-            } else {
-                new_stones.push(stone * 2024);
-            }
-        }
-    }
-    new_stones
-}
-
-// keep track of individual numbers and the count of stones instead of
+// keep track of individual numbers and stone counts instead of
 // processing each stone separately
 fn count_stones_after(stones: Vec<usize>, steps: usize) -> usize {
     let mut counts = HashMap::new();
@@ -40,8 +21,17 @@ fn count_stones_after(stones: Vec<usize>, steps: usize) -> usize {
     for _ in 0..steps {
         let mut new_counts = HashMap::new();
         for (stone, count) in counts {
-            for s in blink(vec![stone]) {
-                *new_counts.entry(s).or_insert(0) += count;
+            if stone == 0 {
+                *new_counts.entry(1).or_insert(0) += count;
+            } else {
+                let digits = stone.ilog10() + 1;
+                if digits % 2 == 0 {
+                    let shift = 10usize.pow(digits / 2);
+                    *new_counts.entry(stone / shift).or_insert(0) += count;
+                    *new_counts.entry(stone % shift).or_insert(0) += count;
+                } else {
+                    *new_counts.entry(stone * 2024).or_insert(0) += count;
+                }
             }
         }
         counts = new_counts;
