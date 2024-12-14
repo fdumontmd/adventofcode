@@ -69,14 +69,18 @@ impl Robot {
     }
 }
 
-fn part1(input: &str, size: (i64, i64)) -> usize {
-    let mut robots: HashMap<Quadrant, usize> = HashMap::new();
-    input
-        .lines()
-        .filter_map(|l| Robot::from_str(l).quadrant_after(100, size))
-        .for_each(|q| *robots.entry(q).or_insert(0) += 1);
+fn safety(robots: &Vec<Robot>, time: i64, size: (i64, i64)) -> usize {
+    let mut robot_quadrants: HashMap<Quadrant, usize> = HashMap::new();
+    robots
+        .iter()
+        .filter_map(|r| r.quadrant_after(time, size))
+        .for_each(|q| *robot_quadrants.entry(q).or_insert(0) += 1);
+    robot_quadrants.values().product()
+}
 
-    robots.values().product()
+fn part1(input: &str, size: (i64, i64)) -> usize {
+    let robots: Vec<Robot> = input.lines().map(Robot::from_str).collect();
+    safety(&robots, 100, size)
 }
 
 fn display(size: (i64, i64), robots: &Vec<Robot>) {
