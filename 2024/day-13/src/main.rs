@@ -22,7 +22,7 @@ impl Machine {
         let num = self.x * self.by - self.y * self.bx;
         let denom = self.ax * self.by - self.ay * self.bx;
 
-        if denom != 0 && (num * denom).signum() > 0 && num % denom == 0 {
+        if denom != 0 && num % denom == 0 {
             let a = num / denom;
             if (self.x - a * self.ax) % self.bx == 0 {
                 let b = (self.x - a * self.ax) / self.bx;
