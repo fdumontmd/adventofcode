@@ -70,7 +70,7 @@ fn part2(input: &str, size: Size) -> Pos {
     // let's try for a binary search...
     loop {
         let mid = bottom + (top - bottom) / 2;
-        if let Some(_steps) = try_find_path(&bytes_pos, size, mid) {
+        if try_find_path(&bytes_pos, size, mid).is_some() {
             bottom = mid;
         } else {
             top = mid;
