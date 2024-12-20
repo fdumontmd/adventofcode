@@ -66,11 +66,9 @@ fn solve_with_cheating(
 
     queue.push_front((start, 0));
 
-    seen.iter_mut().for_each(|s| {
-        *s = false;
-    });
+    let mut seen: Grid<bool, Taxicab> = grid.into();
 
-    let mut best_paths = HashMap::new();
+    let mut best_cheats = HashMap::new();
 
     while let Some((pos, steps)) = queue.pop_back() {
         seen[pos] = true;
@@ -83,15 +81,15 @@ fn solve_with_cheating(
                 queue.push_front((n, steps + 1));
             }
         }
-        // don't need to just start at walls, so don't need to iterate over neighbours
-        // now we'll need to check neighbours at distance of at most distance
+        // don't need to start at walls, so don't need to check neighbours
+        // now we'll need to check all tracks at distance of at most distance
         let bound_x = (
-            pos.0.saturating_sub(distance + 1),
-            (pos.0 + distance + 1).min(grid.width() - 1),
+            pos.0.saturating_sub(distance),
+            (pos.0 + distance).min(grid.width() - 1),
         );
         let bound_y = (
-            pos.1.saturating_sub(distance + 1),
-            (pos.1 + distance + 1).min(grid.height() - 1),
+            pos.1.saturating_sub(distance),
+            (pos.1 + distance).min(grid.height() - 1),
         );
         for y in bound_y.0..=bound_y.1 {
             for x in bound_x.0..=bound_x.1 {
@@ -99,13 +97,10 @@ fn solve_with_cheating(
                 if Taxicab::distance(pos, t) > distance {
                     continue;
                 }
-                if !matches!(grid[t], Tile::Wall)
-                    && steps + Taxicab::distance(pos, t) + distance_from_end[t] <= min_path - cutoff
-                {
-                    best_paths
-                        .entry(
-                            min_path - (steps + Taxicab::distance(pos, t) + distance_from_end[t]),
-                        )
+                let cheat_distance = steps + Taxicab::distance(pos, t) + distance_from_end[t];
+                if !matches!(grid[t], Tile::Wall) && cheat_distance <= min_path - cutoff {
+                    best_cheats
+                        .entry(cheat_distance)
                         .or_insert(HashSet::new())
                         .insert((pos, t));
                 }
@@ -113,7 +108,7 @@ fn solve_with_cheating(
         }
     }
 
-    best_paths.values().map(|bs| bs.len()).sum()
+    best_cheats.values().map(|bs| bs.len()).sum()
 }
 
 fn part1(input: &str, cutoff: usize) -> usize {
