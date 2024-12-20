@@ -69,7 +69,7 @@ fn sort(successors: &Successors, mut sequence: Vec<usize>) -> Vec<usize> {
     let mut successors = successors.clone();
 
     // remove keys not used
-    let keys: Vec<usize> = successors.keys().cloned().collect();
+    let keys: Vec<usize> = successors.keys().copied().collect();
     for key in keys {
         if !sequence.contains(&key) {
             successors.remove(&key);
