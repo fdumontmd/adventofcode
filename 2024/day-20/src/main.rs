@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::VecDeque;
 
 use aoc_utils::grid::{Distance, Grid, Taxicab};
 
@@ -68,7 +68,7 @@ fn solve_with_cheating(
 
     let mut seen: Grid<bool, Taxicab> = grid.into();
 
-    let mut best_cheats = HashMap::new();
+    let mut count = 0;
 
     while let Some((pos, steps)) = queue.pop_back() {
         seen[pos] = true;
@@ -99,16 +99,13 @@ fn solve_with_cheating(
                 }
                 let cheat_distance = steps + Taxicab::distance(pos, t) + distance_from_end[t];
                 if !matches!(grid[t], Tile::Wall) && cheat_distance <= min_path - cutoff {
-                    best_cheats
-                        .entry(cheat_distance)
-                        .or_insert(HashSet::new())
-                        .insert((pos, t));
+                    count += 1;
                 }
             }
         }
     }
 
-    best_cheats.values().map(|bs| bs.len()).sum()
+    count
 }
 
 fn part1(input: &str, cutoff: usize) -> usize {
