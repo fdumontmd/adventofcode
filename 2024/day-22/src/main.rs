@@ -4,25 +4,29 @@ const INPUT: &str = include_str!("input.txt");
 type U = i64;
 
 const PRUNE: U = 16777216;
+/*
+* evolve_secret is quite slow; the solution is to convert all operatations to
+* shift as all constants are powers of 2
+*
+* * 64 is << 6
+* / 32 is >> 5
+* * 2028 is << 11
+* and 16777216 = 2**20, so % 16777216 is same as & (2**24 - 1) == & 0xFFFFFF;
+*
+* moreover, secrets start small enough to be u32, and will stay there because of
+* prune operation
+*/
 
-fn mix(n: U, s: U) -> U {
-    n ^ s
+fn evolve_secret(s: u32) -> u32 {
+    let a = (s ^ (s << 6)) & 0xFFFFFF;
+    let b = a ^ (a >> 5);
+    (b ^ (b << 11)) & 0xFFFFFF
 }
 
-fn prune(s: U) -> U {
-    s.rem_euclid(PRUNE)
-}
-
-fn evolve_secret(mut s: U) -> U {
-    s = prune(mix(s * 64, s));
-    s = prune(mix(s / 32, s));
-    prune(mix(s * 2048, s))
-}
-
-struct Secret(U);
+struct Secret(u32);
 
 impl Iterator for Secret {
-    type Item = U;
+    type Item = u32;
 
     fn next(&mut self) -> Option<Self::Item> {
         let s = self.0;
@@ -35,17 +39,17 @@ fn part1(input: &str) -> U {
     input
         .lines()
         .map(|l| Secret(l.parse().unwrap()))
-        .map(|s| s.into_iter().nth(2000).unwrap())
+        .map(|s| s.into_iter().nth(2000).unwrap() as i64)
         .sum()
 }
 
 impl Secret {
     fn prices(self) -> impl Iterator<Item = U> {
-        self.into_iter().map(|s| s % 10)
+        self.into_iter().map(|s| (s % 10) as i64)
     }
 }
 
-fn index_prices(secret: i64, map: &mut HashMap<[i64; 4], i64>) {
+fn index_prices(secret: u32, map: &mut HashMap<[i64; 4], i64>) {
     let prices: Vec<i64> = Secret(secret).prices().take(2001).collect();
     let delta: Vec<i64> = prices.windows(2).map(|w| w[1] - w[0]).collect();
     let mut seen = HashSet::new();
@@ -63,8 +67,19 @@ fn index_prices(secret: i64, map: &mut HashMap<[i64; 4], i64>) {
 // all the numbers used in the evolution of the secret
 // are powers of 2, so there must be some cycle that should cut the
 // processing down, but brute force it still kind of fast enough
+//
+// seems that brute force is the way, but a smarter brute could check
+// https://github.com/ndunnett/aoc/blob/main/rust/2024/src/bin/day22.rs
+//
+// ideas: the bit shifting and masking is faster for evolve_secret
+//        use the fact that (-9..=9).len() is 19, so can be encoded on 5 bits
+//        so we can use a 20 bit number to represent a sequence of differences
+//        with  << 5 & 0xFFFFF to shift the differences left and drop the oldest
+//        one
+//        a 20 digit number can be used as index in an array with length 0xFFFFF
+//        finally using the seen[deltas] = secret is a clever way to reuse seen
 fn part2(input: &str) -> U {
-    let secrets: Vec<i64> = input.lines().map(|l| l.parse().unwrap()).collect();
+    let secrets: Vec<u32> = input.lines().map(|l| l.parse().unwrap()).collect();
 
     let mut map = HashMap::new();
 
