@@ -73,6 +73,45 @@ fn part1(input: &str) -> usize {
     triples.len()
 }
 
+fn bron_kerbosch2(
+    adjacency_lists: &[HashSet<usize>],
+    r: HashSet<usize>,
+    mut p: HashSet<usize>,
+    mut x: HashSet<usize>,
+    mc: &mut Vec<usize>,
+) {
+    if p.is_empty() && x.is_empty() {
+        if r.len() > mc.len() {
+            *mc = r.into_iter().collect();
+        }
+    } else {
+        let u = p
+            .iter()
+            .next()
+            .copied()
+            .unwrap_or_else(|| x.iter().next().copied().unwrap());
+
+        let diff = p
+            .difference(&adjacency_lists[u])
+            .copied()
+            .collect::<HashSet<usize>>();
+
+        for v in diff {
+            let mut r = r.clone();
+            r.insert(v);
+            bron_kerbosch2(
+                adjacency_lists,
+                r,
+                p.intersection(&adjacency_lists[v]).copied().collect(),
+                x.intersection(&adjacency_lists[v]).copied().collect(),
+                mc,
+            );
+            p.remove(&v);
+            x.insert(v);
+        }
+    }
+}
+
 // that's a maximal clique problem...
 fn part2(input: &str) -> String {
     let mut id_map: HashMap<&str, usize> = HashMap::new();
@@ -110,55 +149,20 @@ fn part2(input: &str) -> String {
         adjacency_lists[c2_idx].insert(c1_idx);
     }
 
-    let mut cliques = HashSet::new();
+    let mut maximum_clique = vec![];
+    bron_kerbosch2(
+        &adjacency_lists,
+        HashSet::new(),
+        HashSet::from_iter(0..adjacency_lists.len()),
+        HashSet::new(),
+        &mut maximum_clique,
+    );
 
-    for (c1, adj) in adjacency_lists.iter().enumerate() {
-        for &c2 in adj {
-            if c2 > c1 {
-                for &shared in adj.intersection(&adjacency_lists[c2]) {
-                    if shared != c1 && shared != c2 {
-                        // already c1 < c2
-                        let mut triple = vec![c1, c2, shared];
-                        triple.sort();
-                        cliques.insert(triple);
-                    }
-                }
-            }
-        }
-    }
+    dbg!(&maximum_clique);
 
-    loop {
-        let mut max_len = 0;
-        let mut new_cliques = HashSet::new();
-        for clique in cliques {
-            let shared: HashSet<usize> = clique
-                .iter()
-                .fold(adjacency_lists[clique[0]].clone(), |s, e| {
-                    s.intersection(&adjacency_lists[*e]).copied().collect()
-                });
-            for candidate in shared {
-                let mut new_clique = clique.clone();
-                new_clique.push(candidate);
-                new_clique.sort();
-                max_len = max_len.max(new_clique.len());
-                new_cliques.insert(new_clique);
-            }
-            new_cliques.insert(clique);
-        }
-        cliques = new_cliques;
-        if max_len == 0 {
-            break;
-        }
-        cliques.retain(|c| c.len() == max_len);
-    }
-
-    if let Some(clique) = cliques.into_iter().next() {
-        let mut names: Vec<&str> = clique.into_iter().map(|c| name_map[c]).collect();
-        names.sort();
-        names.join(",")
-    } else {
-        panic!("no maximal clique found");
-    }
+    let mut names: Vec<&str> = maximum_clique.into_iter().map(|c| name_map[c]).collect();
+    names.sort();
+    names.join(",")
 }
 
 fn main() {
@@ -211,7 +215,7 @@ td-yn";
     }
 
     #[test_case(TEST_INPUT, "co,de,ka,ta"; "test input")]
-    #[test_case(INPUT, "ao,es,fe,if,in,io,ky,qq,rd,rn,rv,vc,vl"; "slow")]
+    #[test_case(INPUT, "ao,es,fe,if,in,io,ky,qq,rd,rn,rv,vc,vl"; "input")]
     fn test_part2(input: &str, password: &str) {
         assert_eq!(password, part2(input));
     }
